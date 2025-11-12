@@ -1,66 +1,90 @@
-# Yelp-BI
-Status: In Progress
+# Yelp Business Intelligence (Yelp-BI)
 
-Yelp-BI is a business intelligence project that uses real Yelp Fusion API data to build an interactive Power BI dashboard focused on business performance, pricing strategy, customer sentiment, and competitive market analysis. The goal is to transform location-based business data into actionable insights that would be valuable to business owners, market analysts, and strategic decision makers.
+**Status: In Progress**
 
-This project simulates a real-world analytics environment, moving from raw API data, through processing and modeling, to building dashboards that answer key business questions and generate strategic recommendations.
+Yelp-BI is a data project that turns Yelp Fusion API data into structured insights, starting with a database pipeline and evolving into BI dashboards. The focus is analyzing competition, pricing, customer behavior, and market opportunity using a real analytics workflow.
 
----
-
-## Key Business Problems Being Solved
-- How do customer ratings compare across different price levels?
-- Which business categories dominate specific geographic regions?
-- What markets show high competition versus strong opportunity?
-- Do higher-priced businesses receive stronger ratings and engagement?
-- Where should a new business open to balance demand and competition?
+This project follows a full data lifecycle:
+**API ingestion → PostgreSQL (raw + clean) → SQL analytics → Power BI dashboards**
 
 ---
 
-## Core Deliverables
-- **Power BI dashboard** containing multiple analytical views
-- **Market insights based on real Yelp business data**
-- **Competitive density and pricing performance analysis**
-- **Data-driven strategy recommendations for business positioning**
-- **Clear visual storytelling for non-technical stakeholders**
+## Business Questions This Project Answers
+- How do ratings and review volume compare across price categories?
+- Which business types dominate different cities or neighborhoods?
+- Where is competition highest, and where are underserved opportunities?
+- Do higher-priced businesses actually get better reviews?
+- Where should a new business open based on demand and competition?
+
+---
+
+## What This Project Delivers
+- Postgres database storing raw and cleaned data layers
+- SQL views and analytical tables for reporting and dashboard use
+- Power BI dashboards focused on real business decisions
+- Market competition and pricing insights
+- Location-based opportunity analysis
+- Clear visual breakdowns designed for non-technical stakeholders
 
 ---
 
 ## Data Source
-Yelp Fusion API  
-https://www.yelp.com/developers
+- **Yelp Fusion API**  
+  https://www.yelp.com/developers
 
 ---
 
-## Planned Power BI Dashboards
-- **Executive Summary:** Major KPIs (Ratings, Price Distribution, Review Volume)
-- **Price vs Rating Analysis:** Do higher prices mean better ratings?
-- **Business Category Breakdown:** Best performing and most competitive categories
-- **Location Intelligence:** Heat maps and geographic clustering for opportunity zones
-- **Strategic Insights:** Recommended actions backed by data patterns
+## System Workflow
+Yelp API → Python data collection → PostgreSQL (staging + cleaned tables)
+→ SQL analysis → Power BI dashboards
+
 
 ---
 
-## Tools and Frameworks
-- Power BI (data modeling, DAX, dashboard design)
-- Yelp Fusion API (real business data)
-- Python or manual API extraction (data collection)
-- Excel / CSV (data structuring and loading)
+## Power BI Dashboard Plans
+- **Executive Summary:** Ratings, price distribution, review volume, top categories
+- **Pricing vs Satisfaction:** Rating trends across price tiers
+- **Category Performance:** Best and most competitive business segments
+- **Location Insights:** Geographic clustering and opportunity heatmaps
+- **Strategy View:** Recommendations based on data patterns
 
 ---
 
-## Planned Metrics
-- Average rating by price tier
-- Review volume distribution
-- Business category density
-- Geographic saturation levels
-- Competitive index by region
+## Tech Stack
+- **PostgreSQL** (database, queries, transformations)
+- **Python** (API ingestion and automation)
+- **SQL** (analytics and KPI creation)
+- **Power BI** (visualization and storytelling)
+- **Yelp Fusion API** (data source)
 
 ---
 
-## Project Status
-- Project architecture defined
-- Dashboard layout and key metrics outlined
-- Beginning data collection via Yelp API
-- Preparing data for transformation and modeling
+## Key Metrics
+- Average rating by price level
+- Review count distribution
+- Business density per category and location
+- Competitive saturation score
+- Geographic opportunity scoring
+- Rating vs price trend correlations
 
-This project will continue to evolve with new insights, visualizations, and strategic recommendations added as development progresses.
+---
+
+## Current Progress
+- API data collected
+---
+
+## Next Steps
+- Connect Python to PostgreSQL for automated data loading and validation  
+- Import Yelp CSV into the database using a raw staging table  
+- Profile and inspect data quality (nulls, formats, inconsistencies)  
+- Create cleaned and typed analytical tables from staging  
+- Build reusable SQL queries and views for core KPIs  
+- Validate key metrics locally with Python (EDA + summary statistics)  
+- Connect Power BI to PostgreSQL as the primary data source  
+- Build initial dashboard visuals (pricing, ratings, location, competition)  
+- Iterate on insights and add strategic recommendations  
+
+---
+
+This project will continue evolving as more insights, dashboards, and features are built out.
+
