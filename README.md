@@ -2,10 +2,10 @@
 
 **Status: In Progress**
 
-Yelp-BI is a data project that turns Yelp Fusion API data into structured insights, starting with a database pipeline and evolving into BI dashboards. The focus is analyzing competition, pricing, customer behavior, and market opportunity using a real analytics workflow.
+Yelp-BI is a data project that turns Yelp Fusion API data into structured insights, starting with a database pipeline and evolving into BI dashboards. The focus is on analyzing competition, pricing, customer behavior, and market opportunity using a real analytics workflow.
 
-This project follows a full data lifecycle:
-**API ingestion → PostgreSQL (raw + clean) → SQL analytics → Power BI dashboards**
+This project follows a full lifecycle:
+**API ingestion → PostgreSQL (raw + analytics) → SQL metrics → Power BI dashboards → Machine Learning**
 
 ---
 
@@ -15,47 +15,65 @@ This project follows a full data lifecycle:
 - Where is competition highest, and where are underserved opportunities?
 - Do higher-priced businesses actually get better reviews?
 - Where should a new business open based on demand and competition?
+- Which businesses are **overperforming** or **underperforming** compared to expectations?
+- Can we predict which businesses are **at risk of closure** based on historical and contextual signals?
 
 ---
 
 ## What This Project Delivers
-- Postgres database storing raw and cleaned data layers
-- SQL views and analytical tables for reporting and dashboard use
-- Power BI dashboards focused on real business decisions
-- Market competition and pricing insights
-- Location-based opportunity analysis
-- Clear visual breakdowns designed for non-technical stakeholders
+- PostgreSQL database storing structured Yelp business data
+- SQL views and analytical tables used for KPI reporting
+- Power BI dashboards focused on real business and location strategy
+- Competitive landscape breakdowns and pricing insights
+- Interactive geographic analysis to identify market opportunities
+- **Machine learning enhancements for predictive insights**
 
 ---
 
-## Data Source
-- **Yelp Fusion API**  
-  https://www.yelp.com/developers
+## Machine Learning Add-On (Phase 2)
+After the dashboard foundation is complete, ML models will be integrated to create predictive analytics:
+
+### Planned Models
+- **Expected Rating Model (Regression):** Predict expected rating based on price, category mix, location, review volume, and hours.  
+  → Identify **overperformers** and **hidden gems** using residual analysis.
+
+- **Closure Risk Model (Classification):** Predict `p_closed` using business features and historical performance.  
+  → Surface high-risk businesses for strategic recommendations.
+
+- **Clustering / Segmentation:** Discover location-based and category similarity groups for competitive positioning.
+
+### ML Stack
+- **TensorFlow / Keras** (deep learning regression & classification)
+- **Scikit-Learn** (baseline comparison models)
+- **PostgreSQL storage** for model outputs and versioning
+- **Power BI** visualization of predictions & cluster outcomes
 
 ---
 
 ## System Workflow
-Yelp API → Python data collection → PostgreSQL (staging + cleaned tables)
-→ SQL analysis → Power BI dashboards
-
+Yelp API → Python ingestion → PostgreSQL (staging + analytics)  
+→ SQL KPI modeling → Power BI dashboards  
+→ **TensorFlow ML outputs written back to PostgreSQL → BI visualization**
 
 ---
 
 ## Power BI Dashboard Plans
-- **Executive Summary:** Ratings, price distribution, review volume, top categories
+- **Executive Summary:** Price, rating, review volume, competitive density
 - **Pricing vs Satisfaction:** Rating trends across price tiers
-- **Category Performance:** Best and most competitive business segments
-- **Location Insights:** Geographic clustering and opportunity heatmaps
-- **Strategy View:** Recommendations based on data patterns
+- **Category Performance:** Best and most competitive segments
+- **Location Insights:** Opportunity heatmaps & business clusters
+- **Strategic Recommendations:** Based on data patterns and ML predictions
+- **Predictive Analytics:** Overperformers, closure risk, cluster segmentation
 
 ---
 
 ## Tech Stack
-- **PostgreSQL** (database, queries, transformations)
-- **Python** (API ingestion and automation)
-- **SQL** (analytics and KPI creation)
-- **Power BI** (visualization and storytelling)
-- **Yelp Fusion API** (data source)
+- **PostgreSQL**
+- **Python**
+- **SQL**
+- **Power BI**
+- **TensorFlow / Scikit-Learn** *(Phase 2)*
+- **Yelp Fusion API**
 
 ---
 
@@ -65,26 +83,31 @@ Yelp API → Python data collection → PostgreSQL (staging + cleaned tables)
 - Business density per category and location
 - Competitive saturation score
 - Geographic opportunity scoring
-- Rating vs price trend correlations
+- Rating vs Price correlation insights
+- **Predicted closure probability (planned)**
+- **Rating expected vs actual residuals (planned)**
 
 ---
 
 ## Current Progress
-- API data collected
+- API data collection completed for sample region
+- First raw dataset generated and validated
+
 ---
 
 ## Next Steps
-- Connect Python to PostgreSQL for automated data loading and validation  
-- Import Yelp CSV into the database using a raw staging table  
-- Profile and inspect data quality (nulls, formats, inconsistencies)  
-- Create cleaned and typed analytical tables from staging  
-- Build reusable SQL queries and views for core KPIs  
-- Validate key metrics locally with Python (EDA + summary statistics)  
-- Connect Power BI to PostgreSQL as the primary data source  
-- Build initial dashboard visuals (pricing, ratings, location, competition)  
-- Iterate on insights and add strategic recommendations  
+- Load dataset into PostgreSQL
+- Build staging → cleaned analytics tables
+- Create SQL views for KPI metrics
+- Connect Power BI to PostgreSQL
+- Build initial dashboard visuals
+- Add strategic insights and storytelling layer
+- Begin ML feature engineering phase
+- Train baseline models (regression + classification)
+- Write predictions back to SQL for Power BI
 
 ---
 
-This project will continue evolving as more insights, dashboards, and features are built out.
+This project will continue evolving as more data, insights, and machine learning components are added.
+
 
