@@ -105,6 +105,7 @@ Yelp API → Python ingestion → PostgreSQL (staging + analytics)
 - Begin ML feature engineering phase
 - Train baseline models (regression + classification)
 - Write predictions back to SQL for Power BI
+- Build a report for machine learning models
 
 ---
 
