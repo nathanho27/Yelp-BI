@@ -93,12 +93,12 @@ Yelp API → Python ingestion → PostgreSQL (staging + analytics)
 - API data collection completed for sample region
 - First raw dataset generated and validated
 - PostgreSQL is connected, and the dataset is cleaned
+- Load dataset into PostgreSQL
+- Build staging → cleaned analytics tables
 
 ---
 
 ## Next Steps
-- Load dataset into PostgreSQL
-- Build staging → cleaned analytics tables
 - Create SQL views for KPI metrics
 - Connect Power BI to PostgreSQL
 - Build initial dashboard visuals
