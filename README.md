@@ -92,6 +92,7 @@ Yelp API → Python ingestion → PostgreSQL (staging + analytics)
 ## Current Progress
 - API data collection completed for sample region
 - First raw dataset generated and validated
+- PostgreSQL is connected, and the dataset is cleaned
 
 ---
 
