@@ -1,4 +1,4 @@
-# Yelp Business Intelligence (Yelp-BI)
+# Yelp Business Intelligence Platform (Yelp-BI)
 
 **Status: In Progress**
 
