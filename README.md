@@ -102,10 +102,10 @@ and will focus on probabilistic outputs and classification metrics.
 
 ## Next Steps
 
-- Integrate Expected Rating results into Power BI dashboards  
+- Integrate Expected Rating results into Power BI dashboards
+- Explore KPIs in Power BI
 - Begin exploratory analysis for the Closure Risk Model  
-- Train and evaluate classification models for closure risk  
-- Expand analysis beyond Austin to additional cities  
+- Train and evaluate classification models for closure risk 
 
 ---
 
