@@ -16,107 +16,100 @@ The goal of this project is to answer practical business questions such as prici
 
 ## Project Architecture
 
-Yelp Fusion API → Python (Ingestion & Cleaning) → PostgreSQL / CSV (Modeled Data) → SQL KPIs → Machine Learning → Power BI Dashboards
+Yelp Fusion API → Python (Ingestion & Cleaning) → PostgreSQL / CSV (Modeled Data)  
+→ SQL KPIs → Machine Learning → Power BI Dashboards
 
 ---
 
-## Current Focus: Machine Learning Models
+## Machine Learning Models
 
 The machine learning layer builds on top of a cleaned, modeled business-level dataset. Models are designed to produce interpretable, business-facing signals that can be directly consumed by BI dashboards.
 
-### Expected Rating Model (In Progress)
+### Expected Rating Model (Completed)
 
-**Objective**
-Predict the expected Yelp rating of a business based on observable attributes such as price level, review volume, categories, city-level competition, and other engineered features.
+**Objective**  
+Predict the expected Yelp rating of a business based on observable attributes such as price level, review volume, business category, and geographic location.
 
-**Why This Matters**
-Comparing a business’s actual rating to its expected rating allows us to identify:
+**Why This Matters**  
+Comparing a business’s actual rating to its expected rating enables identification of:
 
-* Overperforming businesses that exceed expectations
-* Underperforming businesses that may have improvement opportunities
-* Category- and city-level patterns in customer satisfaction
+- Overperforming businesses that exceed expectations  
+- Underperforming businesses relative to comparable peers  
+- Normalized performance patterns across categories and locations  
 
-**Model Type**
+**Model Type**  
 Regression
 
-**Target Variable**
-
-* Yelp rating
-
-**Example Features**
-
-* Review count
-* Price level
-* Business category
-* City and location signals
-* Competitive density
+**Approach**
+- Linear Regression used as a baseline model  
+- Lasso Regression selected as the final model for improved robustness  
+- Shared preprocessing pipeline with imputation, scaling, and encoding  
 
 **Key Output Metric**
+- Rating Delta = actual rating − predicted rating  
 
-* Rating delta = actual rating minus predicted rating
-
-This output is designed to be written back to the analytics layer and visualized in Power BI.
+Model outputs are written back to the analytics layer and exported to
+`data/kpi/expected_rating_results.csv` for Power BI consumption.
 
 ---
 
-### Closure Risk Model (Planned)
+### Closure Risk Model (In Progress)
 
-**Objective**
-Estimate the likelihood that a business is closed based on engagement, reviews, pricing, and competitive context.
+**Objective**  
+Estimate the probability that a business is closed based on engagement, reviews,
+pricing, category, and competitive context.
 
-**Model Type**
+**Model Type**  
 Classification
 
 **Target Variable**
+- is_closed
 
-* is_closed
-
-This model is intended to support risk monitoring and early warning signals for businesses.
+This model reframes the problem from performance benchmarking to risk estimation
+and will focus on probabilistic outputs and classification metrics.
 
 ---
 
 ## Folder Structure
 
-* data/
+- data/
+  - raw: Raw Yelp API responses  
+  - clean: Cleaned and modeled datasets used for analytics and ML  
+  - kpi: KPI and model output tables for BI consumption  
 
-  * raw: Raw Yelp API responses
-  * clean: Cleaned and modeled datasets used for analytics and ML
-  * kpi: KPI outputs generated from SQL queries
+- SQLQueries/
+  - SQL scripts used to generate KPI and analytics tables  
 
-* SQLQueries/
+- MachineLearning/
+  - ExpectedRatingModel.ipynb  
+  - ClosureRiskModel.ipynb  
+  - README.md  
 
-  * SQL scripts used to generate KPI and analytics tables
-
-* MachineLearning/
-
-  * ExpectedRatingModel.ipynb
-  * ClosureRiskModel.ipynb
-  * README.md
-
-* YelpData.py
-
-  * Python script for Yelp API ingestion and preprocessing
+- YelpData.py
+  - Python script for Yelp API ingestion and preprocessing  
 
 ---
 
 ## Tools & Technologies
 
-* Python (pandas, numpy, scikit-learn)
-* SQL (PostgreSQL-style analytics)
-* Power BI
-* Yelp Fusion API
-* Git & GitHub
+- Python (pandas, numpy, scikit-learn)  
+- SQL (PostgreSQL-style analytics)  
+- Power BI  
+- Yelp Fusion API  
+- Git & GitHub  
 
 ---
 
 ## Next Steps
 
-* Complete feature engineering for the Expected Rating Model
-* Train and evaluate baseline regression models
-* Persist model predictions for BI consumption
-* Integrate model outputs into Power BI dashboards
-* Expand analysis beyond Austin to additional cities
+- Integrate Expected Rating results into Power BI dashboards  
+- Begin exploratory analysis for the Closure Risk Model  
+- Train and evaluate classification models for closure risk  
+- Expand analysis beyond Austin to additional cities  
 
 ---
 
-This project is designed to mirror how analytics and machine learning are applied in a real business intelligence environment, with an emphasis on clarity, reproducibility, and business relevance.
+This project is designed to mirror how analytics and machine learning are applied in a
+real business intelligence environment, with an emphasis on clarity, reproducibility,
+and business relevance.
+
