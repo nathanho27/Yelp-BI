@@ -1,114 +1,122 @@
 # Yelp Business Intelligence Platform (Yelp-BI)
 
-**Status: In Progress**
+## Status
 
-Yelp-BI is a data project that turns Yelp Fusion API data into structured insights, starting with a database pipeline and evolving into BI dashboards. The focus is on analyzing competition, pricing, customer behavior, and market opportunity using a real analytics workflow.
-
-This project follows a full lifecycle:
-**API ingestion → PostgreSQL (raw + analytics) → SQL metrics → Power BI dashboards → Machine Learning**
+In Progress
 
 ---
 
-## Business Questions This Project Answers
-- How do ratings and review volume compare across price categories?
-- Which business types dominate different cities or neighborhoods?
-- Where is competition highest, and where are underserved opportunities?
-- Do higher-priced businesses actually get better reviews?
-- Where should a new business open based on demand and competition?
-- Which businesses are **overperforming** or **underperforming** compared to expectations?
-- Can we predict which businesses are **at risk of closure** based on historical and contextual signals?
+## Overview
+
+Yelp-BI is an end-to-end business intelligence and machine learning project that transforms Yelp Fusion API data into structured, actionable insights for local businesses. The project follows a real-world analytics workflow, starting with data ingestion and cleaning, moving through KPI modeling and SQL analytics, and culminating in machine learning models and Power BI dashboards.
+
+The goal of this project is to answer practical business questions such as pricing strategy, competitive positioning, customer perception, and market opportunity using data-driven methods.
 
 ---
 
-## What This Project Delivers
-- PostgreSQL database storing structured Yelp business data
-- SQL views and analytical tables used for KPI reporting
-- Power BI dashboards focused on real business and location strategy
-- Competitive landscape breakdowns and pricing insights
-- Interactive geographic analysis to identify market opportunities
-- **Machine learning enhancements for predictive insights**
+## Project Architecture
+
+Yelp Fusion API → Python (Ingestion & Cleaning) → PostgreSQL / CSV (Modeled Data) → SQL KPIs → Machine Learning → Power BI Dashboards
 
 ---
 
-## Machine Learning Add-On (Phase 2)
-After the dashboard foundation is complete, ML models will be integrated to create predictive analytics:
+## Current Focus: Machine Learning Models
 
-### Planned Models
-- **Expected Rating Model (Regression):** Predict expected rating based on price, category mix, location, review volume, and hours.  
-  → Identify **overperformers** and **hidden gems** using residual analysis.
+The machine learning layer builds on top of a cleaned, modeled business-level dataset. Models are designed to produce interpretable, business-facing signals that can be directly consumed by BI dashboards.
 
-- **Closure Risk Model (Classification):** Predict `p_closed` using business features and historical performance.  
-  → Surface high-risk businesses for strategic recommendations.
+### Expected Rating Model (In Progress)
 
-- **Clustering / Segmentation:** Discover location-based and category similarity groups for competitive positioning.
+**Objective**
+Predict the expected Yelp rating of a business based on observable attributes such as price level, review volume, categories, city-level competition, and other engineered features.
 
-### ML Stack
-- **TensorFlow / Keras** (deep learning regression & classification)
-- **Scikit-Learn** (baseline comparison models)
-- **PostgreSQL storage** for model outputs and versioning
-- **Power BI** visualization of predictions & cluster outcomes
+**Why This Matters**
+Comparing a business’s actual rating to its expected rating allows us to identify:
 
----
+* Overperforming businesses that exceed expectations
+* Underperforming businesses that may have improvement opportunities
+* Category- and city-level patterns in customer satisfaction
 
-## System Workflow
-Yelp API → Python ingestion → PostgreSQL (staging + analytics)  
-→ SQL KPI modeling → Power BI dashboards  
-→ **TensorFlow ML outputs written back to PostgreSQL → BI visualization**
+**Model Type**
+Regression
 
----
+**Target Variable**
 
-## Power BI Dashboard Plans
-- **Executive Summary:** Price, rating, review volume, competitive density
-- **Pricing vs Satisfaction:** Rating trends across price tiers
-- **Category Performance:** Best and most competitive segments
-- **Location Insights:** Opportunity heatmaps & business clusters
-- **Strategic Recommendations:** Based on data patterns and ML predictions
-- **Predictive Analytics:** Overperformers, closure risk, cluster segmentation
+* Yelp rating
 
----
+**Example Features**
 
-## Tech Stack
-- **PostgreSQL**
-- **Python**
-- **SQL**
-- **Power BI**
-- **TensorFlow / Scikit-Learn** *(Phase 2)*
-- **Yelp Fusion API**
+* Review count
+* Price level
+* Business category
+* City and location signals
+* Competitive density
+
+**Key Output Metric**
+
+* Rating delta = actual rating minus predicted rating
+
+This output is designed to be written back to the analytics layer and visualized in Power BI.
 
 ---
 
-## Key Metrics
-- Average rating by price level
-- Review count distribution
-- Business density per category and location
-- Competitive saturation score
-- Geographic opportunity scoring
-- Rating vs Price correlation insights
-- **Predicted closure probability (planned)**
-- **Rating expected vs actual residuals (planned)**
+### Closure Risk Model (Planned)
+
+**Objective**
+Estimate the likelihood that a business is closed based on engagement, reviews, pricing, and competitive context.
+
+**Model Type**
+Classification
+
+**Target Variable**
+
+* is_closed
+
+This model is intended to support risk monitoring and early warning signals for businesses.
 
 ---
 
-## Current Progress
-- API data collection completed for sample region
-- First raw dataset generated and validated
-- PostgreSQL is connected, and the dataset is cleaned
-- Load dataset into PostgreSQL
-- Build staging → cleaned analytics tables
-- Create SQL views for KPI metrics
-- Connect Power BI to PostgreSQL
+## Folder Structure
+
+* data/
+
+  * raw: Raw Yelp API responses
+  * clean: Cleaned and modeled datasets used for analytics and ML
+  * kpi: KPI outputs generated from SQL queries
+
+* SQLQueries/
+
+  * SQL scripts used to generate KPI and analytics tables
+
+* MachineLearning/
+
+  * ExpectedRatingModel.ipynb
+  * ClosureRiskModel.ipynb
+  * README.md
+
+* YelpData.py
+
+  * Python script for Yelp API ingestion and preprocessing
+
+---
+
+## Tools & Technologies
+
+* Python (pandas, numpy, scikit-learn)
+* SQL (PostgreSQL-style analytics)
+* Power BI
+* Yelp Fusion API
+* Git & GitHub
 
 ---
 
 ## Next Steps
-- Build initial dashboard visuals
-- Add strategic insights and storytelling layer
-- Begin ML feature engineering phase
-- Train baseline models (regression + classification)
-- Build a report for machine learning models
+
+* Complete feature engineering for the Expected Rating Model
+* Train and evaluate baseline regression models
+* Persist model predictions for BI consumption
+* Integrate model outputs into Power BI dashboards
+* Expand analysis beyond Austin to additional cities
 
 ---
 
-This project will continue evolving as more data, insights, and machine learning components are added.
-
-
+This project is designed to mirror how analytics and machine learning are applied in a real business intelligence environment, with an emphasis on clarity, reproducibility, and business relevance.
