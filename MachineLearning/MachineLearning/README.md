@@ -34,13 +34,14 @@ including:
 
 ---
 
-### 2. Closure Risk Model (In Progress)
+### 2. Closure Risk Proxy Model (In Progress)
 
-Predicts the probability that a Yelp business is closed based on observable business
-characteristics.
+Estimates relative business closure risk using observable Yelp signals associated
+with business fragility and survivability.
 
-This model reframes the problem as a classification task and will focus on risk-based
-interpretation using appropriate evaluation metrics.
+This model reframes the problem from outcome prediction to risk identification,
+producing interpretable risk scores and risk buckets rather than binary
+classification when true closure labels are unavailable.
 
 **Status**
 - In development
