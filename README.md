@@ -23,7 +23,7 @@ Yelp Fusion API → Python (Ingestion & Cleaning) → PostgreSQL / CSV (Modeled 
 
 ## Machine Learning Models
 
-The machine learning layer builds on top of a cleaned, modeled business-level dataset. Models are designed to produce interpretable, business-facing signals that can be directly consumed by BI dashboards.
+The machine learning layer is built on top of a cleaned and modeled business-level dataset. Models are designed to produce interpretable, business-facing signals that BI dashboards can directly consume.
 
 ### Expected Rating Model (Completed)
 
@@ -51,24 +51,22 @@ Regression
 Model outputs are written back to the analytics layer and exported to
 `data/kpi/expected_rating_results.csv` for Power BI consumption.
 
----
-
-### Closure Risk Model (In Progress)
+### Closure Risk Proxy Model (In Progress)
 
 **Objective**  
-Estimate the probability that a business is closed based on engagement, reviews,
-pricing, category, and competitive context.
+Estimate the relative business closure risk using observable Yelp signals related to
+engagement, momentum, performance versus expectations, and competitive context.
 
 **Model Type**  
-Classification
+Risk scoring/proxy model
 
-**Target Variable**
-- is_closed
+**Output**
+- Continuous closure risk score  
+- Risk buckets (Low Risk, Medium Risk, High Risk)
 
-This model reframes the problem from performance benchmarking to risk estimation
-and will focus on probabilistic outputs and classification metrics.
-
----
+This model reframes the problem from outcome prediction to relative risk
+identification, producing interpretable risk signals for business intelligence
+and dashboard-driven analysis when true closure labels are unavailable.
 
 ## Folder Structure
 
@@ -102,10 +100,16 @@ and will focus on probabilistic outputs and classification metrics.
 
 ## Next Steps
 
-- Integrate Expected Rating results into Power BI dashboards
-- Explore KPIs in Power BI
-- Begin exploratory analysis for the Closure Risk Model  
-- Train and evaluate classification models for closure risk 
+---
+
+## Next Steps
+
+- Integrate Expected Rating results into Power BI dashboards  
+- Explore KPIs in Power BI  
+- Complete exploratory analysis for the Closure Risk Proxy Model  
+- Construct and validate a closure risk proxy score using engagement, momentum,
+  performance versus expectations, and competitive pressure signals  
+- Incorporate closure risk scores and risk buckets into Power BI dashboards  
 
 ---
 
