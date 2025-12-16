@@ -36,13 +36,14 @@ including:
 
 ### 2. Closure Risk Proxy Model (In Progress)
 
-Estimates relative business closure risk using observable Yelp signals associated
-with business fragility and survivability.
+Estimates **relative business closure risk** using observable Yelp signals related
+to customer engagement, pricing, and competitive market context.
 
-This model reframes the problem from outcome prediction to risk identification,
-producing interpretable risk scores and risk buckets rather than binary
-classification when true closure labels are unavailable.
+Because true closure outcomes are not consistently available through the Yelp
+Fusion API, this model does not perform binary classification. Instead, it
+produces an interpretable risk score, risk buckets, and risk profiles that
+identify businesses that appear more or less vulnerable relative to peers.
 
 **Status**
-- In development
+- In development  
 - Notebook: `ClosureRiskModel.ipynb`
