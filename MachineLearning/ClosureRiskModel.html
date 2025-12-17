@@ -1,0 +1,2383 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.40">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Closure Risk Proxy Model</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="ClosureRiskModel_files/libs/clipboard/clipboard.min.js"></script>
+<script src="ClosureRiskModel_files/libs/quarto-html/quarto.js"></script>
+<script src="ClosureRiskModel_files/libs/quarto-html/popper.min.js"></script>
+<script src="ClosureRiskModel_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="ClosureRiskModel_files/libs/quarto-html/anchor.min.js"></script>
+<link href="ClosureRiskModel_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="ClosureRiskModel_files/libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="ClosureRiskModel_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="ClosureRiskModel_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="ClosureRiskModel_files/libs/bootstrap/bootstrap-973236bd072d72a04ee9cd82dcc9cb29.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Closure Risk Proxy Model</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="objective" class="level2">
+<h2 class="anchored" data-anchor-id="objective">Objective</h2>
+<p>This notebook develops a closure risk proxy model for the Yelp-BI project. The objective is to estimate <strong>relative business closure risk</strong> using observable Yelp signals related to customer engagement, pricing, and competitive market context.</p>
+<p>Because true business closure outcomes are not consistently available through the Yelp Fusion API, this analysis does not perform binary classification. Instead, it constructs an interpretable risk score and risk segments that identify businesses that appear more or less vulnerable relative to peers.</p>
+</section>
+<section id="approach" class="level2">
+<h2 class="anchored" data-anchor-id="approach">Approach</h2>
+<p>The analysis follows a structured workflow:</p>
+<ul>
+<li>Engineer interpretable risk signals from available Yelp data<br>
+</li>
+<li>Construct a standardized closure risk proxy score<br>
+</li>
+<li>Segment businesses into risk buckets and risk profiles<br>
+</li>
+<li>Decompose risk scores into component-level drivers<br>
+</li>
+<li>Aggregate risk at the market and category level</li>
+</ul>
+<p>This approach emphasizes transparency, interpretability, and business relevance, with all outputs designed for downstream use in Power BI dashboards and strategic market analysis.</p>
+</section>
+<section id="imports-and-setup" class="level1">
+<h1>Imports and Setup</h1>
+<div id="c75a2237" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>sns.<span class="bu">set</span>(style<span class="op">=</span><span class="st">"whitegrid"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="1ab1ef09" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">"/Users/nathanho/Desktop/Yelp-BI/data/clean/austin_clean.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="70705be4" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>df.shape</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>df.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">business_id</th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">city</th>
+<th data-quarto-table-cell-role="th">state</th>
+<th data-quarto-table-cell-role="th">address</th>
+<th data-quarto-table-cell-role="th">postal_code</th>
+<th data-quarto-table-cell-role="th">rating</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">is_closed</th>
+<th data-quarto-table-cell-role="th">categories_alias</th>
+<th data-quarto-table-cell-role="th">categories_title</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+<th data-quarto-table-cell-role="th">search_location</th>
+<th data-quarto-table-cell-role="th">search_category</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>cs6HfZNykLVitm09jWFqWg</td>
+<td>Moonshine Grill</td>
+<td>Austin</td>
+<td>TX</td>
+<td>303 Red River St, Austin, TX 78701</td>
+<td>78701</td>
+<td>4.4</td>
+<td>6314</td>
+<td>$$</td>
+<td>2.0</td>
+<td>f</td>
+<td>southern, breakfast_brunch, cocktailbars</td>
+<td>southern, breakfast &amp; brunch, cocktail bars</td>
+<td>30.263754</td>
+<td>-97.738077</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>He2KYtXXfaIR0nkCXH5xiQ</td>
+<td>Loro Asian Smokehouse &amp; Bar</td>
+<td>Austin</td>
+<td>TX</td>
+<td>2115 S Lamar Blvd, Austin, TX 78704</td>
+<td>78704</td>
+<td>4.3</td>
+<td>2497</td>
+<td>$$</td>
+<td>2.0</td>
+<td>f</td>
+<td>smokehouse, asianfusion, cocktailbars</td>
+<td>smokehouse, asian fusion, cocktail bars</td>
+<td>30.247740</td>
+<td>-97.771355</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Rba9Ol4jnTiov6_iAuoF5g</td>
+<td>1618 Asian Fusion</td>
+<td>Austin</td>
+<td>TX</td>
+<td>1618 E Riverside Dr, Austin, TX 78741</td>
+<td>78741</td>
+<td>4.7</td>
+<td>3856</td>
+<td>$$</td>
+<td>2.0</td>
+<td>f</td>
+<td>vietnamese, thai, dimsum</td>
+<td>vietnamese, thai, dim sum</td>
+<td>30.245474</td>
+<td>-97.730411</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>BHZ9puL8YuHE-YEdkmxH-g</td>
+<td>Canje</td>
+<td>Austin</td>
+<td>TX</td>
+<td>1914 E 6th St, Ste C, Austin, TX 78702</td>
+<td>78702</td>
+<td>4.5</td>
+<td>574</td>
+<td>$$$</td>
+<td>3.0</td>
+<td>f</td>
+<td>caribbean</td>
+<td>caribbean</td>
+<td>30.261770</td>
+<td>-97.722320</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>YZs1gNSh_sN8JmN_nrpxeA</td>
+<td>Terry Black's Barbecue</td>
+<td>Austin</td>
+<td>TX</td>
+<td>1003 Barton Springs Rd, Austin, TX 78704</td>
+<td>78704</td>
+<td>4.5</td>
+<td>8396</td>
+<td>$$</td>
+<td>2.0</td>
+<td>f</td>
+<td>bbq, sandwiches, southern</td>
+<td>barbeque, sandwiches, southern</td>
+<td>30.259692</td>
+<td>-97.754801</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="667759fa" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df.columns</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(df.columns)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>['business_id',
+ 'name',
+ 'city',
+ 'state',
+ 'address',
+ 'postal_code',
+ 'rating',
+ 'review_count',
+ 'price',
+ 'price_level',
+ 'is_closed',
+ 'categories_alias',
+ 'categories_title',
+ 'latitude',
+ 'longitude',
+ 'search_location',
+ 'search_category']</code></pre>
+</div>
+</div>
+<section id="feature-engineering-for-risk-signals" class="level2">
+<h2 class="anchored" data-anchor-id="feature-engineering-for-risk-signals">2. Feature Engineering for Risk Signals</h2>
+<p>We construct simple, interpretable proxy features that reflect known business risk factors using only available data.</p>
+<section id="engagement-risk-review-count" class="level3">
+<h3 class="anchored" data-anchor-id="engagement-risk-review-count">2.1 Engagement Risk (Review Count)</h3>
+<p>Businesses with fewer reviews tend to have weaker customer traction. We log-transform review count to reduce skew.</p>
+<div id="c4155602" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"ReviewCountLog"</span>] <span class="op">=</span> np.log1p(df[<span class="st">"review_count"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="rating-risk" class="level3">
+<h3 class="anchored" data-anchor-id="rating-risk">2.2 Rating Risk</h3>
+<p>Lower ratings indicate weaker customer satisfaction. We convert rating into a risk signal by measuring distance from the maximum.</p>
+<div id="934f4849" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"RatingRisk"</span>] <span class="op">=</span> <span class="dv">5</span> <span class="op">-</span> df[<span class="st">"rating"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="price-risk" class="level3">
+<h3 class="anchored" data-anchor-id="price-risk">2.3 Price Risk</h3>
+<p>Higher-priced businesses may face higher closure risk if demand is weak. We use price_level and fill missing values conservatively.</p>
+<div id="5342c438" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"PriceRisk"</span>] <span class="op">=</span> df[<span class="st">"price_level"</span>].fillna(df[<span class="st">"price_level"</span>].median())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="market-competition-risk" class="level3">
+<h3 class="anchored" data-anchor-id="market-competition-risk">2.4 Market Competition Risk</h3>
+<p>Businesses operating in dense city-category markets face more competition. We measure this as the number of businesses in the same city and search category.</p>
+<div id="2b317cb0" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"MarketDensity"</span>] <span class="op">=</span> (</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    df.groupby([<span class="st">"city"</span>, <span class="st">"search_category"</span>])[<span class="st">"business_id"</span>]</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>      .transform(<span class="st">"count"</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="assemble-risk-feature-matrix" class="level2">
+<h2 class="anchored" data-anchor-id="assemble-risk-feature-matrix">3. Assemble Risk Feature Matrix</h2>
+<p>We combine the engineered risk signals into a single feature matrix for modeling.</p>
+<div id="095c2f2c" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>RiskFeatures <span class="op">=</span> [</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ReviewCountLog"</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RatingRisk"</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"PriceRisk"</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"MarketDensity"</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="standardize-risk-features" class="level2">
+<h2 class="anchored" data-anchor-id="standardize-risk-features">4. Standardize Risk Features</h2>
+<p>Features are standardized so they are comparable on the same scale.</p>
+<div id="2b5d1250" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> StandardScaler</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>Scaler <span class="op">=</span> StandardScaler()</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>RiskScaled <span class="op">=</span> Scaler.fit_transform(df[RiskFeatures])</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>RiskDf <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    RiskScaled,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    columns<span class="op">=</span>RiskFeatures,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    index<span class="op">=</span>df.index</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="align-direction-of-risk-signals" class="level2">
+<h2 class="anchored" data-anchor-id="align-direction-of-risk-signals">5. Align Direction of Risk Signals</h2>
+<p>We ensure that higher values always indicate higher risk. Since higher review counts indicate lower risk, we invert that signal.</p>
+<div id="81b7efe2" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>RiskDf[<span class="st">"ReviewCountLog"</span>] <span class="op">=</span> <span class="op">-</span>RiskDf[<span class="st">"ReviewCountLog"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="construct-closure-risk-proxy-score" class="level2">
+<h2 class="anchored" data-anchor-id="construct-closure-risk-proxy-score">6. Construct Closure Risk Proxy Score</h2>
+<p>The final closure risk score is computed as the average of standardized risk signals.</p>
+<div id="640532e7" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"ClosureRiskScore"</span>] <span class="op">=</span> RiskDf.mean(axis<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="create-risk-buckets" class="level2">
+<h2 class="anchored" data-anchor-id="create-risk-buckets">7. Create Risk Buckets</h2>
+<p>Businesses are grouped into relative risk tiers for interpretability. We use quartiles to define four risk buckets: Low, Medium, and High Risk.</p>
+<div id="915aaf41" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"RiskBucket"</span>] <span class="op">=</span> pd.qcut(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">"ClosureRiskScore"</span>],</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    q<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    labels<span class="op">=</span>[<span class="st">"Low Risk"</span>, <span class="st">"Medium Risk"</span>, <span class="st">"High Risk"</span>]</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="sanity-check" class="level2">
+<h2 class="anchored" data-anchor-id="sanity-check">8. Sanity Check</h2>
+<p>We validate that higher risk buckets correspond to weaker business signals.</p>
+<div id="1390aa3b" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>df.groupby(<span class="st">"RiskBucket"</span>)[RiskFeatures].mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/var/folders/6l/x4chl4_n3rqfjk60tqzm_vf80000gn/T/ipykernel_25279/2885536890.py:1: FutureWarning: The default of observed=False is deprecated and will be changed to True in a future version of pandas. Pass observed=False to retain current behavior or observed=True to adopt the future default and silence this warning.
+  df.groupby("RiskBucket")[RiskFeatures].mean()</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ReviewCountLog</th>
+<th data-quarto-table-cell-role="th">RatingRisk</th>
+<th data-quarto-table-cell-role="th">PriceRisk</th>
+<th data-quarto-table-cell-role="th">MarketDensity</th>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">RiskBucket</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Low Risk</td>
+<td>7.171434</td>
+<td>0.591045</td>
+<td>2.014925</td>
+<td>200.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Medium Risk</td>
+<td>6.294257</td>
+<td>0.724242</td>
+<td>2.227273</td>
+<td>200.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">High Risk</td>
+<td>6.225831</td>
+<td>0.862687</td>
+<td>2.880597</td>
+<td>200.0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="exploring-and-interpreting-the-risk-model" class="level2">
+<h2 class="anchored" data-anchor-id="exploring-and-interpreting-the-risk-model">9. Exploring and interpreting the Risk Model</h2>
+<div id="e6c43d40" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>df[[</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"name"</span>,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"city"</span>,</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"rating"</span>,</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"review_count"</span>,</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ClosureRiskScore"</span>,</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RiskBucket"</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>]].head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="15">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">city</th>
+<th data-quarto-table-cell-role="th">rating</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">ClosureRiskScore</th>
+<th data-quarto-table-cell-role="th">RiskBucket</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Moonshine Grill</td>
+<td>Austin</td>
+<td>4.4</td>
+<td>6314</td>
+<td>-0.901423</td>
+<td>Low Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Loro Asian Smokehouse &amp; Bar</td>
+<td>Austin</td>
+<td>4.3</td>
+<td>2497</td>
+<td>-0.532834</td>
+<td>Low Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>1618 Asian Fusion</td>
+<td>Austin</td>
+<td>4.7</td>
+<td>3856</td>
+<td>-1.080504</td>
+<td>Low Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>Canje</td>
+<td>Austin</td>
+<td>4.5</td>
+<td>574</td>
+<td>0.068461</td>
+<td>Medium Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Terry Black's Barbecue</td>
+<td>Austin</td>
+<td>4.5</td>
+<td>8396</td>
+<td>-1.088234</td>
+<td>Low Risk</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="933f4d92" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"RiskBucket"</span>].value_counts()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>RiskBucket
+Low Risk       67
+High Risk      67
+Medium Risk    66
+Name: count, dtype: int64</code></pre>
+</div>
+</div>
+<div id="1df81a38" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>df.sort_values(<span class="st">"ClosureRiskScore"</span>, ascending<span class="op">=</span><span class="va">True</span>)[[</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"name"</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"city"</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"rating"</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"review_count"</span>,</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ClosureRiskScore"</span>,</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RiskBucket"</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>]].head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="17">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">city</th>
+<th data-quarto-table-cell-role="th">rating</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">ClosureRiskScore</th>
+<th data-quarto-table-cell-role="th">RiskBucket</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Terry Black's Barbecue</td>
+<td>Austin</td>
+<td>4.5</td>
+<td>8396</td>
+<td>-1.088234</td>
+<td>Low Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">2</td>
+<td>1618 Asian Fusion</td>
+<td>Austin</td>
+<td>4.7</td>
+<td>3856</td>
+<td>-1.080504</td>
+<td>Low Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">20</td>
+<td>Franklin Barbecue</td>
+<td>Austin</td>
+<td>4.5</td>
+<td>6368</td>
+<td>-1.010023</td>
+<td>Low Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">110</td>
+<td>Granny's Tacos</td>
+<td>Austin</td>
+<td>4.7</td>
+<td>682</td>
+<td>-0.988809</td>
+<td>Low Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Moonshine Grill</td>
+<td>Austin</td>
+<td>4.4</td>
+<td>6314</td>
+<td>-0.901423</td>
+<td>Low Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">55</td>
+<td>Bird Bird Biscuit</td>
+<td>Austin</td>
+<td>4.7</td>
+<td>1802</td>
+<td>-0.865356</td>
+<td>Low Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">28</td>
+<td>Home Slice Pizza</td>
+<td>Austin</td>
+<td>4.4</td>
+<td>4871</td>
+<td>-0.828025</td>
+<td>Low Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">23</td>
+<td>Bouldin Creek Cafe</td>
+<td>Austin</td>
+<td>4.5</td>
+<td>3056</td>
+<td>-0.802353</td>
+<td>Low Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22</td>
+<td>Jewboy Burgers</td>
+<td>Austin</td>
+<td>4.6</td>
+<td>1660</td>
+<td>-0.735955</td>
+<td>Low Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">91</td>
+<td>Santorini Cafe</td>
+<td>Austin</td>
+<td>4.7</td>
+<td>1045</td>
+<td>-0.711308</td>
+<td>Low Risk</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="d78035c7" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>df.sort_values(<span class="st">"ClosureRiskScore"</span>, ascending<span class="op">=</span><span class="va">False</span>)[[</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"name"</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"city"</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"rating"</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"review_count"</span>,</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ClosureRiskScore"</span>,</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RiskBucket"</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>]].head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="18">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">city</th>
+<th data-quarto-table-cell-role="th">rating</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">ClosureRiskScore</th>
+<th data-quarto-table-cell-role="th">RiskBucket</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">194</td>
+<td>The Guest House Austin</td>
+<td>Austin</td>
+<td>4.1</td>
+<td>291</td>
+<td>1.083038</td>
+<td>High Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">65</td>
+<td>Comedor</td>
+<td>Austin</td>
+<td>4.1</td>
+<td>528</td>
+<td>0.914913</td>
+<td>High Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">85</td>
+<td>Jeffrey's</td>
+<td>Austin</td>
+<td>4.1</td>
+<td>565</td>
+<td>0.895786</td>
+<td>High Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">156</td>
+<td>Oseyo</td>
+<td>Austin</td>
+<td>3.8</td>
+<td>499</td>
+<td>0.851347</td>
+<td>High Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">125</td>
+<td>Otoko</td>
+<td>Austin</td>
+<td>4.5</td>
+<td>167</td>
+<td>0.814670</td>
+<td>High Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">33</td>
+<td>Arlo Grey by Kristen Kish</td>
+<td>Austin</td>
+<td>3.9</td>
+<td>494</td>
+<td>0.747998</td>
+<td>High Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">38</td>
+<td>Juniper</td>
+<td>Austin</td>
+<td>4.2</td>
+<td>740</td>
+<td>0.713372</td>
+<td>High Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">79</td>
+<td>J Prime Steakhouse - Austin</td>
+<td>Austin</td>
+<td>4.5</td>
+<td>240</td>
+<td>0.712581</td>
+<td>High Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">162</td>
+<td>Jacoby's Restaurant &amp; Mercantile</td>
+<td>Austin</td>
+<td>3.8</td>
+<td>840</td>
+<td>0.704229</td>
+<td>High Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">119</td>
+<td>Olamaie</td>
+<td>Austin</td>
+<td>3.9</td>
+<td>628</td>
+<td>0.680216</td>
+<td>High Risk</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="interpreting-the-closure-risk-proxy-results" class="level2">
+<h2 class="anchored" data-anchor-id="interpreting-the-closure-risk-proxy-results">Interpreting the Closure Risk Proxy Results</h2>
+<p>The closure risk proxy model produces a <strong>relative risk score</strong>, not a prediction of actual business closure. Higher scores indicate greater vulnerability relative to other businesses in the same market.</p>
+<section id="why-high-quality-businesses-can-appear-high-risk" class="level3">
+<h3 class="anchored" data-anchor-id="why-high-quality-businesses-can-appear-high-risk">Why High-Quality Businesses Can Appear High Risk</h3>
+<p>Several well-known and highly rated restaurants appear in the <strong>High Risk</strong> category. This does not indicate poor quality. Instead, it reflects <strong>relative fragility</strong> driven by structural factors such as:</p>
+<ul>
+<li>Lower review volume compared to peers, indicating a narrower customer base</li>
+<li>Higher price positioning, which increases sensitivity to demand fluctuations</li>
+<li>Operation within a dense and competitive market environment</li>
+</ul>
+<p>High-end or niche businesses may be more vulnerable despite strong ratings because they have less margin for error when customer traffic declines.</p>
+</section>
+<section id="why-popular-restaurants-appear-low-risk" class="level3">
+<h3 class="anchored" data-anchor-id="why-popular-restaurants-appear-low-risk">Why Popular Restaurants Appear Low Risk</h3>
+<p>Businesses classified as <strong>Low Risk</strong> tend to exhibit:</p>
+<ul>
+<li>Very high review counts, signaling strong and diversified customer traction</li>
+<li>Consistently strong ratings</li>
+<li>Broad appeal within the local market</li>
+</ul>
+<p>These characteristics suggest greater resilience to competitive pressure and market shocks.</p>
+</section>
+<section id="understanding-the-risk-score-scale" class="level3">
+<h3 class="anchored" data-anchor-id="understanding-the-risk-score-scale">Understanding the Risk Score Scale</h3>
+<p>The closure risk score is a standardized index:</p>
+<ul>
+<li>Negative values indicate <strong>below-average risk</strong></li>
+<li>Positive values indicate <strong>above-average risk</strong></li>
+</ul>
+<p>The score should be interpreted as a <strong>relative vulnerability measure</strong>, similar to a z-score, rather than a probability of closure.</p>
+</section>
+<section id="risk-buckets" class="level3">
+<h3 class="anchored" data-anchor-id="risk-buckets">Risk Buckets</h3>
+<p>Businesses are grouped into three risk tiers using quantile-based thresholds:</p>
+<ul>
+<li>Low Risk</li>
+<li>Medium Risk</li>
+<li>High Risk</li>
+</ul>
+<p>This ensures balanced segmentation and enables intuitive comparison across markets and categories for downstream analysis and dashboarding.</p>
+</section>
+<section id="key-insight" class="level3">
+<h3 class="anchored" data-anchor-id="key-insight">Key Insight</h3>
+<p>This analysis demonstrates that <strong>risk is not equivalent to quality</strong>. Even highly rated businesses can exhibit elevated closure risk when engagement, pricing strategy, and competitive context are considered together. The closure risk proxy model is designed to surface these structural vulnerabilities for strategic decision-making rather than to predict failure outcomes.</p>
+</section>
+</section>
+</section>
+<section id="k-means-risk-segmentation" class="level1">
+<h1>K-Means Risk Segmentation</h1>
+<section id="objective-1" class="level2">
+<h2 class="anchored" data-anchor-id="objective-1">Objective</h2>
+<p>In addition to a continuous closure risk score, we use k-means clustering to identify distinct <strong>risk profiles</strong> among Yelp businesses. While the risk score answers <em>how risky</em> a business is relative to peers, clustering helps explain <em>why</em> businesses are risky by grouping similar risk characteristics together.</p>
+<p>This segmentation provides an interpretable, unsupervised view of business fragility that complements the closure risk proxy model.</p>
+</section>
+<section id="select-features-for-clustering" class="level2">
+<h2 class="anchored" data-anchor-id="select-features-for-clustering">1. Select Features for Clustering</h2>
+<p>We use the same standardized risk features from the closure risk proxy to ensure consistency between scoring and segmentation.</p>
+<div id="be3b46ef" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.cluster <span class="im">import</span> KMeans</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> StandardScaler</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cf960c76" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>RiskFeatures <span class="op">=</span> [</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ReviewCountLog"</span>,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RatingRisk"</span>,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"PriceRisk"</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"MarketDensity"</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="standardize-features" class="level2">
+<h2 class="anchored" data-anchor-id="standardize-features">2. Standardize Features</h2>
+<p>K-means is distance-based, so features must be on the same scale.</p>
+<div id="322dbe59" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>Scaler <span class="op">=</span> StandardScaler()</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>RiskScaled <span class="op">=</span> Scaler.fit_transform(df[RiskFeatures])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="choose-number-of-clusters-k" class="level2">
+<h2 class="anchored" data-anchor-id="choose-number-of-clusters-k">3. Choose Number of Clusters (k)</h2>
+<p>We begin with k = 3 to align with Low / Medium / High risk segmentation and maintain interpretability.</p>
+<div id="053965a1" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>K <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>KMeansModel <span class="op">=</span> KMeans(</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    n_clusters<span class="op">=</span>K,</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    random_state<span class="op">=</span><span class="dv">42</span>,</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    n_init<span class="op">=</span><span class="dv">10</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"RiskCluster"</span>] <span class="op">=</span> KMeansModel.fit_predict(RiskScaled)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="examine-cluster-characteristics" class="level2">
+<h2 class="anchored" data-anchor-id="examine-cluster-characteristics">4. Examine Cluster Characteristics</h2>
+<p>We inspect average feature values within each cluster to understand the dominant risk drivers.</p>
+<div id="c5549340" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>ClusterProfile <span class="op">=</span> (</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    df.groupby(<span class="st">"RiskCluster"</span>)[RiskFeatures]</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>      .mean()</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>      .<span class="bu">round</span>(<span class="dv">2</span>)</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>ClusterProfile</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="23">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ReviewCountLog</th>
+<th data-quarto-table-cell-role="th">RatingRisk</th>
+<th data-quarto-table-cell-role="th">PriceRisk</th>
+<th data-quarto-table-cell-role="th">MarketDensity</th>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">RiskCluster</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>7.30</td>
+<td>0.88</td>
+<td>2.02</td>
+<td>200.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>6.07</td>
+<td>0.59</td>
+<td>1.98</td>
+<td>200.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>6.52</td>
+<td>0.75</td>
+<td>3.23</td>
+<td>200.0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="interpret-risk-profiles" class="level2">
+<h2 class="anchored" data-anchor-id="interpret-risk-profiles">5. Interpret Risk Profiles</h2>
+<p>Clusters are interpreted based on their dominant risk signals rather than assigned arbitrarily. - Cluster 0 Low engagement, high market density → Crowded market risk</p>
+<ul>
+<li><p>Cluster 1 Higher price risk, moderate engagement → High-end niche risk</p></li>
+<li><p>Cluster 2 Lower rating risk, strong engagement → More resilient businesses</p></li>
+</ul>
+</section>
+<section id="assign-readable-risk-profiles" class="level2">
+<h2 class="anchored" data-anchor-id="assign-readable-risk-profiles">6. Assign Readable Risk Profiles</h2>
+<p>We label clusters based on their characteristics for easier interpretation.</p>
+<div id="50db6cd7" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>RiskProfileMap <span class="op">=</span> {</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    <span class="dv">0</span>: <span class="st">"Crowded Market Risk"</span>,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="dv">1</span>: <span class="st">"High-End / Niche Risk"</span>,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="dv">2</span>: <span class="st">"Lower Relative Risk"</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"RiskProfile"</span>] <span class="op">=</span> df[<span class="st">"RiskCluster"</span>].<span class="bu">map</span>(RiskProfileMap)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="compare-risk-score-vs-risk-profile" class="level2">
+<h2 class="anchored" data-anchor-id="compare-risk-score-vs-risk-profile">7. Compare Risk Score vs Risk Profile</h2>
+<p>This confirms that clusters align meaningfully with the closure risk proxy.</p>
+<div id="b06e36b2" class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>df.groupby(<span class="st">"RiskProfile"</span>)[<span class="st">"ClosureRiskScore"</span>].mean().<span class="bu">round</span>(<span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="25">
+<pre><code>RiskProfile
+Crowded Market Risk     -0.18
+High-End / Niche Risk   -0.16
+Lower Relative Risk      0.38
+Name: ClosureRiskScore, dtype: float64</code></pre>
+</div>
+</div>
+</section>
+<section id="example-segmentation-output" class="level2">
+<h2 class="anchored" data-anchor-id="example-segmentation-output">8. Example Segmentation Output</h2>
+<div id="3677a6a6" class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>df[[</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"name"</span>,</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"city"</span>,</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"rating"</span>,</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"review_count"</span>,</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ClosureRiskScore"</span>,</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RiskBucket"</span>,</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RiskProfile"</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>]].head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="26">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">city</th>
+<th data-quarto-table-cell-role="th">rating</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">ClosureRiskScore</th>
+<th data-quarto-table-cell-role="th">RiskBucket</th>
+<th data-quarto-table-cell-role="th">RiskProfile</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Moonshine Grill</td>
+<td>Austin</td>
+<td>4.4</td>
+<td>6314</td>
+<td>-0.901423</td>
+<td>Low Risk</td>
+<td>Crowded Market Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Loro Asian Smokehouse &amp; Bar</td>
+<td>Austin</td>
+<td>4.3</td>
+<td>2497</td>
+<td>-0.532834</td>
+<td>Low Risk</td>
+<td>Crowded Market Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>1618 Asian Fusion</td>
+<td>Austin</td>
+<td>4.7</td>
+<td>3856</td>
+<td>-1.080504</td>
+<td>Low Risk</td>
+<td>Crowded Market Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>Canje</td>
+<td>Austin</td>
+<td>4.5</td>
+<td>574</td>
+<td>0.068461</td>
+<td>Medium Risk</td>
+<td>Lower Relative Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Terry Black's Barbecue</td>
+<td>Austin</td>
+<td>4.5</td>
+<td>8396</td>
+<td>-1.088234</td>
+<td>Low Risk</td>
+<td>Crowded Market Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>Suerte</td>
+<td>Austin</td>
+<td>4.3</td>
+<td>1281</td>
+<td>0.053992</td>
+<td>Medium Risk</td>
+<td>Lower Relative Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>Qi Austin</td>
+<td>Austin</td>
+<td>4.4</td>
+<td>850</td>
+<td>-0.334360</td>
+<td>Low Risk</td>
+<td>High-End / Niche Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>Salty Sow</td>
+<td>Austin</td>
+<td>4.3</td>
+<td>3394</td>
+<td>-0.221546</td>
+<td>Low Risk</td>
+<td>Lower Relative Risk</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>Odd Duck</td>
+<td>Austin</td>
+<td>4.4</td>
+<td>2397</td>
+<td>-0.229373</td>
+<td>Low Risk</td>
+<td>Lower Relative Risk</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>Red Ash</td>
+<td>Austin</td>
+<td>4.4</td>
+<td>1498</td>
+<td>0.301651</td>
+<td>High Risk</td>
+<td>Lower Relative Risk</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="k-means-risk-segmentation-results" class="level2">
+<h2 class="anchored" data-anchor-id="k-means-risk-segmentation-results">K-Means Risk Segmentation Results</h2>
+<p>To complement the closure risk proxy score, k-means clustering was applied to identify <strong>distinct risk profiles</strong> among Yelp businesses based on engagement, rating quality, price positioning, and market density.</p>
+<section id="average-closure-risk-score-by-risk-profile" class="level3">
+<h3 class="anchored" data-anchor-id="average-closure-risk-score-by-risk-profile">Average Closure Risk Score by Risk Profile</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Risk Profile</th>
+<th>Avg Closure Risk Score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Crowded Market Risk</td>
+<td>-0.18</td>
+</tr>
+<tr class="even">
+<td>High-End / Niche Risk</td>
+<td>-0.16</td>
+</tr>
+<tr class="odd">
+<td>Lower Relative Risk</td>
+<td>0.38</td>
+</tr>
+</tbody>
+</table>
+<p>At first glance, these averages may appear counterintuitive. However, this result highlights an important distinction between <strong>risk magnitude</strong> and <strong>risk type</strong>.</p>
+<hr>
+</section>
+<section id="interpreting-the-risk-profiles" class="level3">
+<h3 class="anchored" data-anchor-id="interpreting-the-risk-profiles">Interpreting the Risk Profiles</h3>
+<section id="crowded-market-risk" class="level4">
+<h4 class="anchored" data-anchor-id="crowded-market-risk">Crowded Market Risk</h4>
+<p>Businesses in this profile tend to operate in highly saturated city–category markets. While many have strong engagement and solid ratings, competitive pressure increases their structural vulnerability over time. These businesses may appear relatively safe today but face long-term risk due to market crowding.</p>
+</section>
+<section id="high-end-niche-risk" class="level4">
+<h4 class="anchored" data-anchor-id="high-end-niche-risk">High-End / Niche Risk</h4>
+<p>This profile captures higher-priced or niche businesses with strong branding but more limited customer bases. Despite often having good ratings, these businesses can be sensitive to demand fluctuations and economic shocks because they rely on a narrower segment of customers.</p>
+</section>
+<section id="lower-relative-risk" class="level4">
+<h4 class="anchored" data-anchor-id="lower-relative-risk">Lower Relative Risk</h4>
+<p>Although labeled “Lower Relative Risk” based on clustering patterns, this group includes businesses with <strong>higher average closure risk scores</strong>. This reflects cases where businesses exhibit weaker engagement or rating signals despite operating in less crowded or lower-priced contexts.</p>
+<p>This result underscores that clustering identifies <strong>similarity in risk drivers</strong>, not overall risk magnitude.</p>
+<hr>
+</section>
+</section>
+<section id="relationship-between-risk-score-and-risk-profile" class="level3">
+<h3 class="anchored" data-anchor-id="relationship-between-risk-score-and-risk-profile">Relationship Between Risk Score and Risk Profile</h3>
+<ul>
+<li><strong>ClosureRiskScore</strong> measures <em>how risky</em> a business is relative to peers.</li>
+<li><strong>RiskProfile</strong> explains <em>why</em> a business is risky by identifying the dominant structural risk pattern.</li>
+</ul>
+<p>As a result, a business may: - Belong to a relatively stable risk profile but still rank high in overall risk, or - Appear structurally fragile while currently exhibiting lower aggregate risk.</p>
+<p>Together, these two signals provide a more complete and interpretable view of business vulnerability.</p>
+<hr>
+</section>
+<section id="key-takeaway" class="level3">
+<h3 class="anchored" data-anchor-id="key-takeaway">Key Takeaway</h3>
+<p>Risk segmentation and risk scoring serve complementary purposes. The closure risk proxy score enables ranking and prioritization, while k-means risk profiles provide explanatory insight into the underlying drivers of risk. This combined approach supports more informed business intelligence and strategic analysis than either method alone.</p>
+</section>
+</section>
+<section id="risk-component-contribution-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="risk-component-contribution-analysis">Risk Component Contribution Analysis</h2>
+<p>While the closure risk proxy score provides an overall measure of business vulnerability, it does not explain <em>why</em> a business is considered risky. To improve interpretability and actionability, we decompose the total risk score into its underlying component contributions.</p>
+<section id="constructing-component-level-risk-signals" class="level3">
+<h3 class="anchored" data-anchor-id="constructing-component-level-risk-signals">Constructing Component-Level Risk Signals</h3>
+<p>Each component represents a standardized contribution to closure risk, aligned so that higher values indicate higher relative risk.</p>
+<div id="5bcc42dd" class="cell" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>RiskComponents <span class="op">=</span> RiskDf.copy()</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>RiskComponents.columns <span class="op">=</span> [</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"EngagementRisk"</span>,</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RatingRiskComponent"</span>,</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"PriceRiskComponent"</span>,</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"CompetitionRisk"</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>RiskComponents.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="27">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">EngagementRisk</th>
+<th data-quarto-table-cell-role="th">RatingRiskComponent</th>
+<th data-quarto-table-cell-role="th">PriceRiskComponent</th>
+<th data-quarto-table-cell-role="th">CompetitionRisk</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>-2.473343</td>
+<td>-0.535207</td>
+<td>-0.597141</td>
+<td>0.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>-1.423754</td>
+<td>-0.110439</td>
+<td>-0.597141</td>
+<td>0.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>-1.915368</td>
+<td>-1.809509</td>
+<td>-0.597141</td>
+<td>0.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>0.238585</td>
+<td>-0.959974</td>
+<td>0.995234</td>
+<td>0.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>-2.795820</td>
+<td>-0.959974</td>
+<td>-0.597141</td>
+<td>0.0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="attaching-risk-components-to-the-business-level-dataset" class="level3">
+<h3 class="anchored" data-anchor-id="attaching-risk-components-to-the-business-level-dataset">Attaching Risk Components to the Business-Level Dataset</h3>
+<p>The component-level risk signals are merged back into the main business dataset for analysis and reporting.</p>
+<div id="1b4e9e64" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.concat([df, RiskComponents], axis<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="validating-component-contributions" class="level3">
+<h3 class="anchored" data-anchor-id="validating-component-contributions">Validating Component Contributions</h3>
+<p>As a consistency check, we verify that the mean of the component contributions reconstructs the overall closure risk score. If the components are correctly calculated, the mean should be equal to 0.</p>
+<div id="68f85e77" class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"ComponentSum"</span>] <span class="op">=</span> df[</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    [<span class="st">"EngagementRisk"</span>, <span class="st">"RatingRiskComponent"</span>, <span class="st">"PriceRiskComponent"</span>, <span class="st">"CompetitionRisk"</span>]</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>].mean(axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>(df[<span class="st">"ComponentSum"</span>] <span class="op">-</span> df[<span class="st">"ClosureRiskScore"</span>]).<span class="bu">abs</span>().mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="29">
+<pre><code>0.0</code></pre>
+</div>
+</div>
+</section>
+<section id="identifying-the-primary-risk-driver" class="level3">
+<h3 class="anchored" data-anchor-id="identifying-the-primary-risk-driver">Identifying the Primary Risk Driver</h3>
+<p>For each business, we identify the dominant risk component contributing most to the overall closure risk score.</p>
+<div id="96b8f3d7" class="cell" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"PrimaryRiskDriver"</span>] <span class="op">=</span> df[</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    [<span class="st">"EngagementRisk"</span>, <span class="st">"RatingRiskComponent"</span>, <span class="st">"PriceRiskComponent"</span>, <span class="st">"CompetitionRisk"</span>]</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>].idxmax(axis<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="high-risk-businesses-with-component-level-explanation" class="level3">
+<h3 class="anchored" data-anchor-id="high-risk-businesses-with-component-level-explanation">High-Risk Businesses with Component-Level Explanation</h3>
+<p>This allows us to highlight high-risk businesses along with the primary factor driving their vulnerability.</p>
+<div id="08d42e8d" class="cell" data-execution_count="31">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>df.sort_values(<span class="st">"ClosureRiskScore"</span>, ascending<span class="op">=</span><span class="va">False</span>)[[</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"name"</span>,</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"rating"</span>,</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"review_count"</span>,</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ClosureRiskScore"</span>,</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RiskBucket"</span>,</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"PrimaryRiskDriver"</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>]].head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="31">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">rating</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">ClosureRiskScore</th>
+<th data-quarto-table-cell-role="th">RiskBucket</th>
+<th data-quarto-table-cell-role="th">PrimaryRiskDriver</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">194</td>
+<td>The Guest House Austin</td>
+<td>4.1</td>
+<td>291</td>
+<td>1.083038</td>
+<td>High Risk</td>
+<td>PriceRiskComponent</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">65</td>
+<td>Comedor</td>
+<td>4.1</td>
+<td>528</td>
+<td>0.914913</td>
+<td>High Risk</td>
+<td>PriceRiskComponent</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">85</td>
+<td>Jeffrey's</td>
+<td>4.1</td>
+<td>565</td>
+<td>0.895786</td>
+<td>High Risk</td>
+<td>PriceRiskComponent</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">156</td>
+<td>Oseyo</td>
+<td>3.8</td>
+<td>499</td>
+<td>0.851347</td>
+<td>High Risk</td>
+<td>RatingRiskComponent</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">125</td>
+<td>Otoko</td>
+<td>4.5</td>
+<td>167</td>
+<td>0.814670</td>
+<td>High Risk</td>
+<td>PriceRiskComponent</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">33</td>
+<td>Arlo Grey by Kristen Kish</td>
+<td>3.9</td>
+<td>494</td>
+<td>0.747998</td>
+<td>High Risk</td>
+<td>RatingRiskComponent</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">38</td>
+<td>Juniper</td>
+<td>4.2</td>
+<td>740</td>
+<td>0.713372</td>
+<td>High Risk</td>
+<td>PriceRiskComponent</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">79</td>
+<td>J Prime Steakhouse - Austin</td>
+<td>4.5</td>
+<td>240</td>
+<td>0.712581</td>
+<td>High Risk</td>
+<td>PriceRiskComponent</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">162</td>
+<td>Jacoby's Restaurant &amp; Mercantile</td>
+<td>3.8</td>
+<td>840</td>
+<td>0.704229</td>
+<td>High Risk</td>
+<td>RatingRiskComponent</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">119</td>
+<td>Olamaie</td>
+<td>3.9</td>
+<td>628</td>
+<td>0.680216</td>
+<td>High Risk</td>
+<td>RatingRiskComponent</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="distribution-of-primary-risk-drivers" class="level3">
+<h3 class="anchored" data-anchor-id="distribution-of-primary-risk-drivers">Distribution of Primary Risk Drivers</h3>
+<p>We aggregate the dominant risk drivers to understand which factors most commonly contribute to elevated closure risk across the dataset.</p>
+<div id="a72a4382" class="cell" data-execution_count="32">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>df.groupby(<span class="st">"PrimaryRiskDriver"</span>)[<span class="st">"business_id"</span>] <span class="op">\</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  .count() <span class="op">\</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  .sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="32">
+<pre><code>PrimaryRiskDriver
+RatingRiskComponent    62
+EngagementRisk         57
+PriceRiskComponent     47
+CompetitionRisk        34
+Name: business_id, dtype: int64</code></pre>
+</div>
+</div>
+<div id="8e16a31d" class="cell" data-execution_count="33">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>df[df[<span class="st">"RiskBucket"</span>] <span class="op">==</span> <span class="st">"High Risk"</span>] <span class="op">\</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  .groupby(<span class="st">"PrimaryRiskDriver"</span>)[<span class="st">"business_id"</span>] <span class="op">\</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  .count() <span class="op">\</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  .sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="33">
+<pre><code>PrimaryRiskDriver
+PriceRiskComponent     32
+RatingRiskComponent    25
+EngagementRisk         10
+Name: business_id, dtype: int64</code></pre>
+</div>
+</div>
+</section>
+<section id="interpretation-of-risk-components" class="level3">
+<h3 class="anchored" data-anchor-id="interpretation-of-risk-components">Interpretation of Risk Components</h3>
+<ul>
+<li><strong>Engagement Risk</strong> reflects limited customer traction, primarily driven by relatively low review volume.</li>
+<li><strong>Rating Risk</strong> captures weaker customer satisfaction relative to peers.</li>
+<li><strong>Price Risk</strong> highlights higher-priced positioning that may increase exposure to demand fluctuations.</li>
+<li><strong>Competition Risk</strong> reflects operating in dense and highly competitive market environments.</li>
+</ul>
+<p>By identifying the dominant risk driver for each business, this decomposition transforms the closure risk proxy from a ranking tool into an actionable decision support framework.</p>
+</section>
+</section>
+<section id="market-level-risk-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="market-level-risk-analysis">Market-Level Risk Analysis</h2>
+<p>While business-level risk scores identify individual vulnerabilities, aggregating risk across markets reveals structural patterns that affect groups of businesses. This section examines closure risk by category and dominant risk driver to highlight systemic sources of business fragility.</p>
+</section>
+</section>
+<section id="distribution-of-primary-risk-drivers-by-category" class="level1">
+<h1>Distribution of Primary Risk Drivers by Category</h1>
+<p>This shows why categories are risky, not just that they are.</p>
+<div id="69f1b39d" class="cell" data-execution_count="35">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>DriverByCategory <span class="op">=</span> (</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    df.groupby([<span class="st">"search_category"</span>, <span class="st">"PrimaryRiskDriver"</span>])[<span class="st">"business_id"</span>]</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>      .count()</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>      .unstack(fill_value<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>DriverByCategory</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="35">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">PrimaryRiskDriver</th>
+<th data-quarto-table-cell-role="th">CompetitionRisk</th>
+<th data-quarto-table-cell-role="th">EngagementRisk</th>
+<th data-quarto-table-cell-role="th">PriceRiskComponent</th>
+<th data-quarto-table-cell-role="th">RatingRiskComponent</th>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">search_category</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">restaurants</td>
+<td>34</td>
+<td>57</td>
+<td>47</td>
+<td>62</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="risk-by-price-tier" class="level1">
+<h1>Risk by Price Tier</h1>
+<div id="64c59135" class="cell" data-execution_count="37">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>df.groupby(<span class="st">"price_level"</span>)[<span class="st">"ClosureRiskScore"</span>].mean().<span class="bu">round</span>(<span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="37">
+<pre><code>price_level
+1.0   -0.77
+2.0   -0.20
+3.0    0.32
+4.0    0.58
+Name: ClosureRiskScore, dtype: float64</code></pre>
+</div>
+</div>
+<section id="closure-risk-by-price-level" class="level3">
+<h3 class="anchored" data-anchor-id="closure-risk-by-price-level">Closure Risk by Price Level</h3>
+<p>Aggregating closure risk by price tier reveals a clear structural pattern across restaurant businesses.</p>
+<p>Average closure risk increases monotonically with price level, indicating that higher-priced restaurants exhibit greater relative vulnerability. Lower-priced businesses tend to benefit from broader customer bases and more stable demand, while higher-priced establishments rely on narrower, more discretionary consumer segments.</p>
+<p>This result supports the interpretation that <strong>high-end and niche pricing strategies amplify closure risk</strong>, particularly in competitive markets. The finding aligns with both the risk segmentation results and the dominant risk drivers identified earlier, reinforcing the validity of the closure risk proxy model.</p>
+</section>
+</section>
+<section id="share-of-high-risk-businesses-by-category" class="level1">
+<h1>Share of High-Risk Businesses by Category</h1>
+<p>This answers which categories have a disproportionate proportion of vulnerable businesses.</p>
+<div id="0527022b" class="cell" data-execution_count="36">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>HighRiskShare <span class="op">=</span> (</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>    df.assign(IsHighRisk<span class="op">=</span>df[<span class="st">"RiskBucket"</span>] <span class="op">==</span> <span class="st">"High Risk"</span>)</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>      .groupby(<span class="st">"search_category"</span>)[<span class="st">"IsHighRisk"</span>]</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>      .mean()</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>      .sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>      .<span class="bu">round</span>(<span class="dv">2</span>)</span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>HighRiskShare</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="36">
+<pre><code>search_category
+restaurants    0.34
+Name: IsHighRisk, dtype: float64</code></pre>
+</div>
+</div>
+<section id="market-level-insights" class="level3">
+<h3 class="anchored" data-anchor-id="market-level-insights">Market-Level Insights</h3>
+<p>Market-level analysis of restaurant businesses reveals that closure risk is driven primarily by <strong>engagement and customer satisfaction</strong>, with pricing strategy and competitive pressure playing secondary roles.</p>
+<p>Within the restaurant category, the most common dominant risk drivers are:</p>
+<ul>
+<li><strong>Rating Risk</strong>: 62 businesses<br>
+</li>
+<li><strong>Engagement Risk</strong>: 57 businesses<br>
+</li>
+<li><strong>Price Risk</strong>: 47 businesses<br>
+</li>
+<li><strong>Competition Risk</strong>: 34 businesses</li>
+</ul>
+<p>This distribution indicates that <strong>weak customer perception and limited customer traction</strong> are the leading contributors to elevated closure risk. Restaurants with lower ratings or fewer reviews appear more vulnerable than those operating in competitive environments alone.</p>
+<p>Approximately <strong>34% of restaurant businesses</strong> fall into the High Risk bucket, reflecting the relative segmentation of vulnerability within the market rather than absolute failure prediction.</p>
+<p>Price-level aggregation further highlights a structural risk gradient. Lower-priced restaurants exhibit the lowest relative risk, benefiting from broader customer bases and more stable demand. In contrast, higher-priced establishments show elevated risk, consistent with reliance on narrower, more discretionary consumer segments.</p>
+<p>Taken together, these findings suggest that <strong>engagement and reputation are the most effective levers for reducing closure risk</strong>, while high-end pricing strategies amplify vulnerability when not supported by strong customer traction. The closure risk proxy model therefore provides actionable insight by distinguishing between businesses that are structurally fragile due to engagement limitations, pricing exposure, or competitive market conditions.</p>
+</section>
+</section>
+<section id="export-the-csv-for-power-bi" class="level1">
+<h1>Export the CSV for Power BI</h1>
+<div id="672c3497" class="cell" data-execution_count="46">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>PowerBICols <span class="op">=</span> [</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Identifiers</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"business_id"</span>,</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"name"</span>,</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"city"</span>,</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"state"</span>,</span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"search_category"</span>,</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Core risk outputs</span></span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ClosureRiskScore"</span>,</span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RiskBucket"</span>,</span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RiskProfile"</span>,</span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Risk explanation</span></span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">"PrimaryRiskDriver"</span>,</span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">"EngagementRisk"</span>,</span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RatingRiskComponent"</span>,</span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">"PriceRiskComponent"</span>,</span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">"CompetitionRisk"</span>,</span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Context</span></span>
+<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>    <span class="st">"rating"</span>,</span>
+<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>    <span class="st">"review_count"</span>,</span>
+<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">"price_level"</span>,</span>
+<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a>    <span class="st">"MarketDensity"</span>,</span>
+<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a>    <span class="st">"latitude"</span>,</span>
+<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">"longitude"</span></span>
+<span id="cb46-28"><a href="#cb46-28" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="f972c590" class="cell" data-execution_count="47">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>df[PowerBICols].to_csv(</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"/Users/nathanho/Desktop/Yelp-BI/data/kpi/closure_risk_results.csv"</span>,</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>    index<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="50cebdb9" class="cell" data-execution_count="48">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>df[PowerBICols].head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="48">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">business_id</th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">city</th>
+<th data-quarto-table-cell-role="th">state</th>
+<th data-quarto-table-cell-role="th">search_category</th>
+<th data-quarto-table-cell-role="th">ClosureRiskScore</th>
+<th data-quarto-table-cell-role="th">RiskBucket</th>
+<th data-quarto-table-cell-role="th">RiskProfile</th>
+<th data-quarto-table-cell-role="th">PrimaryRiskDriver</th>
+<th data-quarto-table-cell-role="th">EngagementRisk</th>
+<th data-quarto-table-cell-role="th">RatingRiskComponent</th>
+<th data-quarto-table-cell-role="th">PriceRiskComponent</th>
+<th data-quarto-table-cell-role="th">CompetitionRisk</th>
+<th data-quarto-table-cell-role="th">rating</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">MarketDensity</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>cs6HfZNykLVitm09jWFqWg</td>
+<td>Moonshine Grill</td>
+<td>Austin</td>
+<td>TX</td>
+<td>restaurants</td>
+<td>-0.901423</td>
+<td>Low Risk</td>
+<td>Crowded Market Risk</td>
+<td>CompetitionRisk</td>
+<td>-2.473343</td>
+<td>-0.535207</td>
+<td>-0.597141</td>
+<td>0.0</td>
+<td>4.4</td>
+<td>6314</td>
+<td>2.0</td>
+<td>200</td>
+<td>30.263754</td>
+<td>-97.738077</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>He2KYtXXfaIR0nkCXH5xiQ</td>
+<td>Loro Asian Smokehouse &amp; Bar</td>
+<td>Austin</td>
+<td>TX</td>
+<td>restaurants</td>
+<td>-0.532834</td>
+<td>Low Risk</td>
+<td>Crowded Market Risk</td>
+<td>CompetitionRisk</td>
+<td>-1.423754</td>
+<td>-0.110439</td>
+<td>-0.597141</td>
+<td>0.0</td>
+<td>4.3</td>
+<td>2497</td>
+<td>2.0</td>
+<td>200</td>
+<td>30.247740</td>
+<td>-97.771355</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Rba9Ol4jnTiov6_iAuoF5g</td>
+<td>1618 Asian Fusion</td>
+<td>Austin</td>
+<td>TX</td>
+<td>restaurants</td>
+<td>-1.080504</td>
+<td>Low Risk</td>
+<td>Crowded Market Risk</td>
+<td>CompetitionRisk</td>
+<td>-1.915368</td>
+<td>-1.809509</td>
+<td>-0.597141</td>
+<td>0.0</td>
+<td>4.7</td>
+<td>3856</td>
+<td>2.0</td>
+<td>200</td>
+<td>30.245474</td>
+<td>-97.730411</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>BHZ9puL8YuHE-YEdkmxH-g</td>
+<td>Canje</td>
+<td>Austin</td>
+<td>TX</td>
+<td>restaurants</td>
+<td>0.068461</td>
+<td>Medium Risk</td>
+<td>Lower Relative Risk</td>
+<td>PriceRiskComponent</td>
+<td>0.238585</td>
+<td>-0.959974</td>
+<td>0.995234</td>
+<td>0.0</td>
+<td>4.5</td>
+<td>574</td>
+<td>3.0</td>
+<td>200</td>
+<td>30.261770</td>
+<td>-97.722320</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>YZs1gNSh_sN8JmN_nrpxeA</td>
+<td>Terry Black's Barbecue</td>
+<td>Austin</td>
+<td>TX</td>
+<td>restaurants</td>
+<td>-1.088234</td>
+<td>Low Risk</td>
+<td>Crowded Market Risk</td>
+<td>CompetitionRisk</td>
+<td>-2.795820</td>
+<td>-0.959974</td>
+<td>-0.597141</td>
+<td>0.0</td>
+<td>4.5</td>
+<td>8396</td>
+<td>2.0</td>
+<td>200</td>
+<td>30.259692</td>
+<td>-97.754801</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<section id="proxy-classification" class="level2">
+<h2 class="anchored" data-anchor-id="proxy-classification">Proxy Classification</h2>
+<p>While true business closure labels are not consistently available through the Yelp Fusion API, we include an optional proxy classification task to explore whether observable Yelp signals can identify businesses with <strong>elevated closure risk</strong> as defined by the closure risk proxy score.</p>
+<p>This section is explicitly labeled as an exploratory extension and does <strong>not</strong> claim to predict actual business closures.</p>
+<section id="proxy-target-definition" class="level3">
+<h3 class="anchored" data-anchor-id="proxy-target-definition">Proxy Target Definition</h3>
+<p>Rather than predicting true closure outcomes, we define a <strong>proxy risk label</strong> based on the distribution of the closure risk score:</p>
+<ul>
+<li><strong>High Risk (1)</strong>: Businesses in the top 20% of <code>ClosureRiskScore</code></li>
+<li><strong>Not High Risk (0)</strong>: All remaining businesses</li>
+</ul>
+<p>This reframes the task from outcome prediction to <strong>risk identification</strong>.</p>
+<div id="181f3721" class="cell" data-execution_count="38">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>RiskThreshold <span class="op">=</span> df[<span class="st">"ClosureRiskScore"</span>].quantile(<span class="fl">0.80</span>)</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"HighRiskProxy"</span>] <span class="op">=</span> (df[<span class="st">"ClosureRiskScore"</span>] <span class="op">&gt;=</span> RiskThreshold).astype(<span class="bu">int</span>)</span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"HighRiskProxy"</span>].value_counts()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="38">
+<pre><code>HighRiskProxy
+0    160
+1     40
+Name: count, dtype: int64</code></pre>
+</div>
+</div>
+</section>
+<section id="feature-set" class="level3">
+<h3 class="anchored" data-anchor-id="feature-set">Feature Set</h3>
+<p>The proxy classification models use the same interpretable risk components developed earlier in the notebook to ensure consistency with the closure risk proxy framework.</p>
+<div id="0f3b813e" class="cell" data-execution_count="39">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>ProxyFeatures <span class="op">=</span> [</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"EngagementRisk"</span>,</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RatingRiskComponent"</span>,</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"PriceRiskComponent"</span>,</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"CompetitionRisk"</span></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> df[ProxyFeatures]</span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> df[<span class="st">"HighRiskProxy"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="traintest-split" class="level3">
+<h3 class="anchored" data-anchor-id="traintest-split">Train–Test Split</h3>
+<p>We split the data into training and testing sets using stratification to preserve the class distribution of the proxy risk label.</p>
+<div id="92c1d452" class="cell" data-execution_count="40">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>X_train, X_test, y_train, y_test <span class="op">=</span> train_test_split(</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>    X,</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>    y,</span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>    test_size<span class="op">=</span><span class="fl">0.30</span>,</span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a>    random_state<span class="op">=</span><span class="dv">42</span>,</span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>    stratify<span class="op">=</span>y</span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="logistic-regression-baseline-model" class="level3">
+<h3 class="anchored" data-anchor-id="logistic-regression-baseline-model">Logistic Regression (Baseline Model)</h3>
+<p>Logistic regression serves as a transparent baseline model for assessing the directional relationship between individual risk components and the proxy high-risk label.</p>
+<div id="146598ec" class="cell" data-execution_count="41">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LogisticRegression</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>LogitModel <span class="op">=</span> LogisticRegression(max_iter<span class="op">=</span><span class="dv">1000</span>)</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>LogitModel.fit(X_train, y_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="41">
+<style>#sk-container-id-1 {color: black;background-color: white;}#sk-container-id-1 pre{padding: 0;}#sk-container-id-1 div.sk-toggleable {background-color: white;}#sk-container-id-1 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-1 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-1 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-1 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-1 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-1 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-1 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-1 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-1 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-1 div.sk-item {position: relative;z-index: 1;}#sk-container-id-1 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-1 div.sk-item::before, #sk-container-id-1 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-1 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-1 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-1 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-1 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-1 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-1 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-1 div.sk-label-container {text-align: center;}#sk-container-id-1 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-1 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>LogisticRegression(max_iter=1000)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br>On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden=""><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-1" type="checkbox" checked=""><label for="sk-estimator-id-1" class="sk-toggleable__label sk-toggleable__label-arrow">LogisticRegression</label><div class="sk-toggleable__content"><pre>LogisticRegression(max_iter=1000)</pre></div></div></div></div></div>
+</div>
+</div>
+<section id="logistic-regression-coefficients" class="level4">
+<h4 class="anchored" data-anchor-id="logistic-regression-coefficients">Logistic Regression Coefficients</h4>
+<div id="71e79a17" class="cell" data-execution_count="42">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>LogitCoefficients <span class="op">=</span> pd.Series(</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>    LogitModel.coef_[<span class="dv">0</span>],</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>    index<span class="op">=</span>ProxyFeatures</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>).sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>LogitCoefficients</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="42">
+<pre><code>EngagementRisk         2.282914
+RatingRiskComponent    2.146207
+PriceRiskComponent     2.116090
+CompetitionRisk        0.000000
+dtype: float64</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="interpreting-logistic-regression-coefficients" class="level3">
+<h3 class="anchored" data-anchor-id="interpreting-logistic-regression-coefficients">Interpreting Logistic Regression Coefficients</h3>
+<p>The logistic regression model provides a transparent view of how individual risk components relate to the proxy high-risk classification within the context of the Austin restaurant market.</p>
+<p>Engagement risk and rating risk emerge as the strongest predictors, indicating that limited customer traction and weaker customer satisfaction are the primary factors associated with elevated closure risk in a single-city setting. These signals vary substantially across businesses within Austin and therefore provide the greatest discriminatory power.</p>
+<p>Price risk also contributes positively, reflecting the increased vulnerability of higher-priced restaurants operating in a discretionary demand environment. This aligns with earlier findings showing a monotonic increase in risk across price levels.</p>
+<p>The competition risk coefficient is effectively zero in this model. This does not imply that competition is unimportant. Rather, within a single-market dataset, competitive pressure exhibits less variation across businesses and does not add additional explanatory power once engagement, rating, and price signals are accounted for. In practice, competition risk appears to influence closure risk indirectly through its relationship with customer traction and perception.</p>
+<p>Overall, the coefficient patterns reinforce earlier results from the closure risk proxy, risk segmentation, and market-level analyses, demonstrating strong internal consistency across modeling approaches and supporting the validity of the risk framework.</p>
+</section>
+<section id="random-forest-classifier-nonlinear-comparison" class="level3">
+<h3 class="anchored" data-anchor-id="random-forest-classifier-nonlinear-comparison">Random Forest Classifier (Nonlinear Comparison)</h3>
+<p>A random forest classifier is used as a nonlinear comparison model to capture interaction effects among risk components and provide an alternative view of feature importance.</p>
+<div id="1df82480" class="cell" data-execution_count="43">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.ensemble <span class="im">import</span> RandomForestClassifier</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>RFModel <span class="op">=</span> RandomForestClassifier(</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>    n_estimators<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>    random_state<span class="op">=</span><span class="dv">42</span></span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a>RFModel.fit(X_train, y_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="43">
+<style>#sk-container-id-2 {color: black;background-color: white;}#sk-container-id-2 pre{padding: 0;}#sk-container-id-2 div.sk-toggleable {background-color: white;}#sk-container-id-2 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-2 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-2 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-2 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-2 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-2 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-2 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-2 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-2 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-2 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-2 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-2 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-2 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-2 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-2 div.sk-item {position: relative;z-index: 1;}#sk-container-id-2 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-2 div.sk-item::before, #sk-container-id-2 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-2 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-2 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-2 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-2 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-2 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-2 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-2 div.sk-label-container {text-align: center;}#sk-container-id-2 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-2 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-2" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>RandomForestClassifier(n_estimators=200, random_state=42)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br>On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden=""><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-2" type="checkbox" checked=""><label for="sk-estimator-id-2" class="sk-toggleable__label sk-toggleable__label-arrow">RandomForestClassifier</label><div class="sk-toggleable__content"><pre>RandomForestClassifier(n_estimators=200, random_state=42)</pre></div></div></div></div></div>
+</div>
+</div>
+</section>
+<section id="random-forest-feature-importances" class="level3">
+<h3 class="anchored" data-anchor-id="random-forest-feature-importances">Random Forest Feature Importances</h3>
+<div id="6e790bd6" class="cell" data-execution_count="44">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>RFImportances <span class="op">=</span> pd.Series(</span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>    RFModel.feature_importances_,</span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>    index<span class="op">=</span>ProxyFeatures</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>).sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>RFImportances</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="44">
+<pre><code>EngagementRisk         0.384049
+PriceRiskComponent     0.353197
+RatingRiskComponent    0.262754
+CompetitionRisk        0.000000
+dtype: float64</code></pre>
+</div>
+</div>
+</section>
+<section id="model-evaluation-exploratory" class="level3">
+<h3 class="anchored" data-anchor-id="model-evaluation-exploratory">Model Evaluation (Exploratory)</h3>
+<p>Evaluation metrics are included for internal comparison only and should <strong>not</strong> be interpreted as real-world closure prediction performance.</p>
+<div id="559bf135" class="cell" data-execution_count="45">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> classification_report</span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>y_pred_logit <span class="op">=</span> LogitModel.predict(X_test)</span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>y_pred_rf <span class="op">=</span> RFModel.predict(X_test)</span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Logistic Regression"</span>)</span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(classification_report(y_test, y_pred_logit))</span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Random Forest"</span>)</span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(classification_report(y_test, y_pred_rf))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Logistic Regression
+              precision    recall  f1-score   support
+
+           0       0.92      1.00      0.96        48
+           1       1.00      0.67      0.80        12
+
+    accuracy                           0.93        60
+   macro avg       0.96      0.83      0.88        60
+weighted avg       0.94      0.93      0.93        60
+
+Random Forest
+              precision    recall  f1-score   support
+
+           0       0.92      0.98      0.95        48
+           1       0.89      0.67      0.76        12
+
+    accuracy                           0.92        60
+   macro avg       0.91      0.82      0.86        60
+weighted avg       0.92      0.92      0.91        60
+</code></pre>
+</div>
+</div>
+</section>
+<section id="interpreting-random-forest-feature-importances" class="level3">
+<h3 class="anchored" data-anchor-id="interpreting-random-forest-feature-importances">Interpreting Random Forest Feature Importances</h3>
+<p>The random forest classifier provides a nonlinear perspective on which risk components most strongly differentiate high-risk businesses from the rest of the market.</p>
+<p>Engagement risk remains the most influential feature, reinforcing the importance of customer traction in identifying elevated closure risk. Price risk emerges as a strong secondary driver under nonlinear modeling, suggesting that pricing effects may intensify beyond certain thresholds. Rating risk also contributes meaningfully, while competition risk provides little incremental signal within the single-city dataset.</p>
+<p>The convergence of feature importance rankings between the random forest and logistic regression models supports the robustness of the underlying risk signals.</p>
+</section>
+<section id="important-caveat" class="level3">
+<h3 class="anchored" data-anchor-id="important-caveat">Important Caveat</h3>
+<p>Performance metrics reported in this section reflect an <strong>internal proxy classification task</strong> rather than real-world closure prediction. The target labels are derived from the closure risk proxy score itself, and evaluation results should be interpreted as measures of internal consistency and signal strength rather than predictive accuracy for true business outcomes.</p>
+</section>
+<section id="important-caveat-1" class="level3">
+<h3 class="anchored" data-anchor-id="important-caveat-1">Important Caveat</h3>
+<p>This proxy classification task does <strong>not</strong> predict actual business closures. Instead, it evaluates whether observable Yelp signals can identify businesses classified as high risk by the closure risk proxy model itself.</p>
+<p>Results should be interpreted as: - Exploratory validation of signal strength - Internal consistency checks - Learning tools for understanding risk drivers</p>
+<p>They should <strong>not</strong> be used as measures of real-world closure prediction accuracy.</p>
+</section>
+</section>
+<section id="final-summary-and-business-implications" class="level2">
+<h2 class="anchored" data-anchor-id="final-summary-and-business-implications">Final Summary and Business Implications</h2>
+<p>This notebook developed a <strong>closure risk proxy model</strong> to estimate relative business vulnerability using observable Yelp signals when true closure outcomes are unavailable. Rather than attempting binary closure prediction, the analysis focused on identifying <strong>structural risk patterns</strong> that differentiate more fragile businesses from more resilient peers within the Austin restaurant market.</p>
+<section id="key-methodological-contributions" class="level3">
+<h3 class="anchored" data-anchor-id="key-methodological-contributions">Key Methodological Contributions</h3>
+<ul>
+<li>Constructed an interpretable <strong>closure risk proxy score</strong> using standardized signals related to customer engagement, customer satisfaction, pricing strategy, and competitive market density.</li>
+<li>Segmented businesses into <strong>risk buckets</strong> (Low, Medium, High) to support prioritization and communication.</li>
+<li>Applied <strong>k-means clustering</strong> to identify distinct <strong>risk profiles</strong>, providing insight into different types of business vulnerability.</li>
+<li>Decomposed the total risk score into <strong>component-level contributions</strong>, enabling identification of dominant risk drivers for individual businesses.</li>
+<li>Conducted <strong>market-level aggregation</strong> to uncover structural risk patterns within the restaurant category.</li>
+<li>Included an optional <strong>proxy classification extension</strong> to validate signal strength using familiar supervised learning models while clearly documenting limitations.</li>
+</ul>
+</section>
+<section id="core-findings" class="level3">
+<h3 class="anchored" data-anchor-id="core-findings">Core Findings</h3>
+<p>Across all modeling approaches, results consistently indicate that <strong>engagement and customer perception are the strongest drivers of elevated closure risk</strong>. Businesses with fewer reviews or weaker ratings appear substantially more vulnerable than those facing competition alone.</p>
+<p>Price positioning introduces a clear structural risk gradient. Lower-priced restaurants exhibit the lowest relative risk, benefiting from broader customer bases and more stable demand. In contrast, higher-priced establishments show elevated vulnerability due to reliance on narrower, more discretionary consumer segments.</p>
+<p>Competitive pressure contributes to closure risk indirectly but does not emerge as a dominant standalone predictor within a single-city dataset. In the Austin market, competition appears to influence risk primarily through its effects on engagement and customer perception rather than as an independent driver.</p>
+</section>
+<section id="proxy-classification-insights" class="level3">
+<h3 class="anchored" data-anchor-id="proxy-classification-insights">Proxy Classification Insights</h3>
+<p>An optional proxy classification task using logistic regression and random forest models reinforces the consistency of the risk framework. Both models converge on engagement risk, rating risk, and price risk as the most informative signals, with competition risk providing little incremental explanatory power once other factors are considered.</p>
+<p>Model performance reflects a conservative risk identification strategy, favoring high precision over recall for high-risk businesses. Importantly, these results should be interpreted as <strong>internal consistency checks</strong>, not real-world closure prediction accuracy, since proxy labels are derived from the risk score itself.</p>
+</section>
+<section id="business-implications" class="level3">
+<h3 class="anchored" data-anchor-id="business-implications">Business Implications</h3>
+<p>The closure risk proxy model highlights that <strong>risk is not synonymous with quality</strong>. Highly rated businesses may still exhibit elevated vulnerability due to limited customer traction, niche pricing strategies, or structural exposure to demand shocks.</p>
+<p>From a strategic perspective, the findings suggest that the most effective levers for reducing closure risk are:</p>
+<ul>
+<li>Improving <strong>customer engagement</strong> and visibility</li>
+<li>Maintaining strong <strong>customer satisfaction and reputation</strong></li>
+<li>Carefully managing <strong>pricing strategy</strong> in discretionary market segments</li>
+</ul>
+<p>By surfacing both the magnitude and drivers of risk, this framework supports data-driven prioritization, targeted intervention, and market-level strategic analysis.</p>
+</section>
+<section id="conclusion" class="level3">
+<h3 class="anchored" data-anchor-id="conclusion">Conclusion</h3>
+<p>Overall, this analysis demonstrates how proxy modeling, unsupervised learning, and interpretable risk decomposition can be combined to produce actionable business intelligence when true outcome labels are unavailable. The resulting risk scores, segments, and explanations are designed for direct integration into Power BI dashboards and provide a scalable foundation for future multi-market extensions.</p>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

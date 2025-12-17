@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.40">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Expected Rating Model</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="ExpectedRatingModel_files/libs/clipboard/clipboard.min.js"></script>
+<script src="ExpectedRatingModel_files/libs/quarto-html/quarto.js"></script>
+<script src="ExpectedRatingModel_files/libs/quarto-html/popper.min.js"></script>
+<script src="ExpectedRatingModel_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="ExpectedRatingModel_files/libs/quarto-html/anchor.min.js"></script>
+<link href="ExpectedRatingModel_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="ExpectedRatingModel_files/libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="ExpectedRatingModel_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="ExpectedRatingModel_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="ExpectedRatingModel_files/libs/bootstrap/bootstrap-973236bd072d72a04ee9cd82dcc9cb29.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Expected Rating Model</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="objective" class="level2">
+<h2 class="anchored" data-anchor-id="objective">Objective</h2>
+<p>This notebook builds an Expected Rating model for Yelp businesses in Austin, TX. The goal is to estimate what rating a business <em>should</em> receive based on observable characteristics, then compute a Rating Delta to identify over- and under-performing businesses.</p>
+</section>
+<section id="dataset-loading" class="level2">
+<h2 class="anchored" data-anchor-id="dataset-loading">Dataset Loading</h2>
+<p>The dataset contains business-level Yelp data for Austin, TX.</p>
+<p>Business identifiers and names are preserved separately for interpretation and reporting purposes but are excluded from model features to prevent leakage.</p>
+<div id="98fe6a34" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'/Users/nathanho/Desktop/Yelp-BI/data/clean/austin_clean.csv'</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>df.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">business_id</th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">city</th>
+<th data-quarto-table-cell-role="th">state</th>
+<th data-quarto-table-cell-role="th">address</th>
+<th data-quarto-table-cell-role="th">postal_code</th>
+<th data-quarto-table-cell-role="th">rating</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">is_closed</th>
+<th data-quarto-table-cell-role="th">categories_alias</th>
+<th data-quarto-table-cell-role="th">categories_title</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+<th data-quarto-table-cell-role="th">search_location</th>
+<th data-quarto-table-cell-role="th">search_category</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>cs6HfZNykLVitm09jWFqWg</td>
+<td>Moonshine Grill</td>
+<td>Austin</td>
+<td>TX</td>
+<td>303 Red River St, Austin, TX 78701</td>
+<td>78701</td>
+<td>4.4</td>
+<td>6314</td>
+<td>$$</td>
+<td>2.0</td>
+<td>f</td>
+<td>southern, breakfast_brunch, cocktailbars</td>
+<td>southern, breakfast &amp; brunch, cocktail bars</td>
+<td>30.263754</td>
+<td>-97.738077</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>He2KYtXXfaIR0nkCXH5xiQ</td>
+<td>Loro Asian Smokehouse &amp; Bar</td>
+<td>Austin</td>
+<td>TX</td>
+<td>2115 S Lamar Blvd, Austin, TX 78704</td>
+<td>78704</td>
+<td>4.3</td>
+<td>2497</td>
+<td>$$</td>
+<td>2.0</td>
+<td>f</td>
+<td>smokehouse, asianfusion, cocktailbars</td>
+<td>smokehouse, asian fusion, cocktail bars</td>
+<td>30.247740</td>
+<td>-97.771355</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Rba9Ol4jnTiov6_iAuoF5g</td>
+<td>1618 Asian Fusion</td>
+<td>Austin</td>
+<td>TX</td>
+<td>1618 E Riverside Dr, Austin, TX 78741</td>
+<td>78741</td>
+<td>4.7</td>
+<td>3856</td>
+<td>$$</td>
+<td>2.0</td>
+<td>f</td>
+<td>vietnamese, thai, dimsum</td>
+<td>vietnamese, thai, dim sum</td>
+<td>30.245474</td>
+<td>-97.730411</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>BHZ9puL8YuHE-YEdkmxH-g</td>
+<td>Canje</td>
+<td>Austin</td>
+<td>TX</td>
+<td>1914 E 6th St, Ste C, Austin, TX 78702</td>
+<td>78702</td>
+<td>4.5</td>
+<td>574</td>
+<td>$$$</td>
+<td>3.0</td>
+<td>f</td>
+<td>caribbean</td>
+<td>caribbean</td>
+<td>30.261770</td>
+<td>-97.722320</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>YZs1gNSh_sN8JmN_nrpxeA</td>
+<td>Terry Black's Barbecue</td>
+<td>Austin</td>
+<td>TX</td>
+<td>1003 Barton Springs Rd, Austin, TX 78704</td>
+<td>78704</td>
+<td>4.5</td>
+<td>8396</td>
+<td>$$</td>
+<td>2.0</td>
+<td>f</td>
+<td>bbq, sandwiches, southern</td>
+<td>barbeque, sandwiches, southern</td>
+<td>30.259692</td>
+<td>-97.754801</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="exploratory-analysis-eda" class="level2">
+<h2 class="anchored" data-anchor-id="exploratory-analysis-eda">Exploratory Analysis (EDA)</h2>
+<p>This section contains exploratory analysis used to understand data quality, feature behavior, missingness, and multicollinearity. These steps informed final feature selection decisions.</p>
+</section>
+<section id="dataset-overview" class="level2">
+<h2 class="anchored" data-anchor-id="dataset-overview">Dataset Overview</h2>
+<p>A brief overview of the dataset structure is provided below, including dimensions and column names. Detailed exploratory analysis was conducted prior to modeling.</p>
+<div id="e2eb9ddc" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.shape)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>df.columns.tolist()</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>df.info()</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>df.describe(include<span class="op">=</span><span class="st">'all'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(200, 17)
+&lt;class 'pandas.core.frame.DataFrame'&gt;
+RangeIndex: 200 entries, 0 to 199
+Data columns (total 17 columns):
+ #   Column            Non-Null Count  Dtype  
+---  ------            --------------  -----  
+ 0   business_id       200 non-null    object 
+ 1   name              200 non-null    object 
+ 2   city              200 non-null    object 
+ 3   state             200 non-null    object 
+ 4   address           200 non-null    object 
+ 5   postal_code       200 non-null    int64  
+ 6   rating            200 non-null    float64
+ 7   review_count      200 non-null    int64  
+ 8   price             182 non-null    object 
+ 9   price_level       182 non-null    float64
+ 10  is_closed         200 non-null    object 
+ 11  categories_alias  200 non-null    object 
+ 12  categories_title  200 non-null    object 
+ 13  latitude          200 non-null    float64
+ 14  longitude         200 non-null    float64
+ 15  search_location   200 non-null    object 
+ 16  search_category   200 non-null    object 
+dtypes: float64(4), int64(2), object(11)
+memory usage: 26.7+ KB</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">business_id</th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">city</th>
+<th data-quarto-table-cell-role="th">state</th>
+<th data-quarto-table-cell-role="th">address</th>
+<th data-quarto-table-cell-role="th">postal_code</th>
+<th data-quarto-table-cell-role="th">rating</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">is_closed</th>
+<th data-quarto-table-cell-role="th">categories_alias</th>
+<th data-quarto-table-cell-role="th">categories_title</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+<th data-quarto-table-cell-role="th">search_location</th>
+<th data-quarto-table-cell-role="th">search_category</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">count</td>
+<td>200</td>
+<td>200</td>
+<td>200</td>
+<td>200</td>
+<td>200</td>
+<td>200.000000</td>
+<td>200.000000</td>
+<td>200.000000</td>
+<td>182</td>
+<td>182.000000</td>
+<td>200</td>
+<td>200</td>
+<td>200</td>
+<td>200.000000</td>
+<td>200.000000</td>
+<td>200</td>
+<td>200</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">unique</td>
+<td>200</td>
+<td>187</td>
+<td>1</td>
+<td>1</td>
+<td>199</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>4</td>
+<td>NaN</td>
+<td>1</td>
+<td>168</td>
+<td>168</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">top</td>
+<td>cs6HfZNykLVitm09jWFqWg</td>
+<td>Ramen Tatsu-Ya</td>
+<td>Austin</td>
+<td>TX</td>
+<td>500 W 5th St, Austin, TX 78701</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>$$</td>
+<td>NaN</td>
+<td>f</td>
+<td>mexican</td>
+<td>mexican</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>Austin, TX</td>
+<td>restaurants</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">freq</td>
+<td>1</td>
+<td>3</td>
+<td>200</td>
+<td>200</td>
+<td>2</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>117</td>
+<td>NaN</td>
+<td>200</td>
+<td>5</td>
+<td>5</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>200</td>
+<td>200</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">mean</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>78719.165000</td>
+<td>4.274000</td>
+<td>1048.805000</td>
+<td>NaN</td>
+<td>2.412088</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>30.289542</td>
+<td>-97.740801</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">std</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>23.127086</td>
+<td>0.236014</td>
+<td>1124.890363</td>
+<td>NaN</td>
+<td>0.648387</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.040393</td>
+<td>0.022076</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">min</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>78701.000000</td>
+<td>3.800000</td>
+<td>78.000000</td>
+<td>NaN</td>
+<td>1.000000</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>30.236097</td>
+<td>-97.863070</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">25%</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>78702.000000</td>
+<td>4.100000</td>
+<td>384.250000</td>
+<td>NaN</td>
+<td>2.000000</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>30.262192</td>
+<td>-97.750108</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">50%</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>78704.000000</td>
+<td>4.300000</td>
+<td>681.000000</td>
+<td>NaN</td>
+<td>2.000000</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>30.269570</td>
+<td>-97.741581</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">75%</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>78747.250000</td>
+<td>4.400000</td>
+<td>1292.000000</td>
+<td>NaN</td>
+<td>3.000000</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>30.312607</td>
+<td>-97.727318</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">max</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>78759.000000</td>
+<td>4.900000</td>
+<td>8396.000000</td>
+<td>NaN</td>
+<td>4.000000</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>30.403442</td>
+<td>-97.676665</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>This provides a high-level overview of distributions, missingness, and categorical cardinality across all features.</p>
+</section>
+<section id="target-variable-analysis-rating" class="level1">
+<h1>Target Variable Analysis (Rating)</h1>
+<div id="b4911d2c" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"rating"</span>].describe()</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"rating"</span>].value_counts().sort_index()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>rating
+3.8     7
+3.9    14
+4.0    15
+4.1    26
+4.2    26
+4.3    35
+4.4    30
+4.5    26
+4.6    10
+4.7     7
+4.8     2
+4.9     2
+Name: count, dtype: int64</code></pre>
+</div>
+</div>
+<div id="ded5f118" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"rating"</span>].hist(bins<span class="op">=</span><span class="dv">30</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Distribution of Yelp Ratings"</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Rating"</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Count"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ExpectedRatingModel_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Yelp ratings exhibit a positive skew, which is expected due to platform bias. The target variable remains suitable for regression modeling.</p>
+</section>
+<section id="missing-data-analysis" class="level1">
+<h1>Missing Data Analysis</h1>
+<div id="9d446ccf" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>missing <span class="op">=</span> df.isna().<span class="bu">sum</span>().sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>missing</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>price               18
+price_level         18
+search_location      0
+longitude            0
+latitude             0
+categories_title     0
+categories_alias     0
+is_closed            0
+business_id          0
+name                 0
+review_count         0
+rating               0
+postal_code          0
+address              0
+state                0
+city                 0
+search_category      0
+dtype: int64</code></pre>
+</div>
+</div>
+<div id="bfc04b28" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Percentage of missing values</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>(df.isna().<span class="bu">sum</span>() <span class="op">/</span> <span class="bu">len</span>(df)).sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>price               0.09
+price_level         0.09
+search_location     0.00
+longitude           0.00
+latitude            0.00
+categories_title    0.00
+categories_alias    0.00
+is_closed           0.00
+business_id         0.00
+name                0.00
+review_count        0.00
+rating              0.00
+postal_code         0.00
+address             0.00
+state               0.00
+city                0.00
+search_category     0.00
+dtype: float64</code></pre>
+</div>
+</div>
+<div id="966f7ff9" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># How many rows have any missing values?</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>df.isna().<span class="bu">any</span>(axis<span class="op">=</span><span class="dv">1</span>).<span class="bu">sum</span>()</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Confirm missingness is only in price-related columns</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>df.loc[df.isna().<span class="bu">any</span>(axis<span class="op">=</span><span class="dv">1</span>), [<span class="st">"price"</span>, <span class="st">"price_level"</span>]].head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">price</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">19</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">24</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">25</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">27</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">49</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="missing-data-conclusion" class="level1">
+<h1>Missing Data Conclusion</h1>
+<p>Only price-related features (<code>price</code> and <code>price_level</code>) contain missing values, affecting 18 out of 200 businesses (~9%). Missingness is fully localized and occurs jointly across both fields. No missing values are present in the target or other predictors. These features will be retained and handled via imputation within the preprocessing pipeline.</p>
+</section>
+<section id="multicollinearity-analysis" class="level1">
+<h1>Multicollinearity Analysis</h1>
+<p>Multicollinearity among numeric predictors was evaluated using correlation analysis and Variance Inflation Factor (VIF).</p>
+<div id="08748f20" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>NumericCols <span class="op">=</span> df.select_dtypes(include<span class="op">=</span>[<span class="st">'int64'</span>, <span class="st">'float64'</span>]).columns.tolist()</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>NumericCols</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>['postal_code',
+ 'rating',
+ 'review_count',
+ 'price_level',
+ 'latitude',
+ 'longitude']</code></pre>
+</div>
+</div>
+<div id="8dc81a2c" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>NumericCols.remove(<span class="st">'rating'</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>NumericCols</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>['postal_code', 'review_count', 'price_level', 'latitude', 'longitude']</code></pre>
+</div>
+</div>
+<div id="01807bb4" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>df[NumericCols].corr()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">postal_code</th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">postal_code</td>
+<td>1.000000</td>
+<td>-0.055750</td>
+<td>-0.167878</td>
+<td>0.850890</td>
+<td>0.192226</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">review_count</td>
+<td>-0.055750</td>
+<td>1.000000</td>
+<td>-0.120966</td>
+<td>-0.134231</td>
+<td>0.017297</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">price_level</td>
+<td>-0.167878</td>
+<td>-0.120966</td>
+<td>1.000000</td>
+<td>-0.134601</td>
+<td>-0.022731</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">latitude</td>
+<td>0.850890</td>
+<td>-0.134231</td>
+<td>-0.134601</td>
+<td>1.000000</td>
+<td>0.198993</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">longitude</td>
+<td>0.192226</td>
+<td>0.017297</td>
+<td>-0.022731</td>
+<td>0.198993</td>
+<td>1.000000</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="2e9e9d68" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsmodels.stats.outliers_influence <span class="im">import</span> variance_inflation_factor</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Drop rows with missing numeric values for VIF calculation</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>VIFdf <span class="op">=</span> df[NumericCols].dropna()</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Add intercept</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>XVIF <span class="op">=</span> np.column_stack([np.ones(<span class="bu">len</span>(VIFdf)), VIFdf.values])</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>VIFData <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"feature"</span>: [<span class="st">"intercept"</span>] <span class="op">+</span> NumericCols,</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"VIF"</span>: [variance_inflation_factor(XVIF, i) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(XVIF.shape[<span class="dv">1</span>])]</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>VIFData</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">feature</th>
+<th data-quarto-table-cell-role="th">VIF</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>intercept</td>
+<td>5.153432e+07</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>postal_code</td>
+<td>3.786247e+00</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>review_count</td>
+<td>1.059178e+00</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>price_level</td>
+<td>1.048617e+00</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>latitude</td>
+<td>3.863420e+00</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>longitude</td>
+<td>1.046927e+00</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<section id="multicollinearity-conclusion" class="level3">
+<h3 class="anchored" data-anchor-id="multicollinearity-conclusion">Multicollinearity Conclusion</h3>
+<p>Variance Inflation Factor (VIF) analysis indicates low multicollinearity among numeric predictors. Geographic features exhibit moderate correlation, which is expected. Although postal_code does not exceed standard VIF thresholds, it is excluded from modeling because ZIP codes are identifiers rather than meaningful numeric quantities. Latitude and longitude are retained to capture location effects. Multicollinearity is noted but not prohibitive for baseline linear modeling.</p>
+</section>
+</section>
+<section id="preprocessing-pipeline" class="level1">
+<h1>Preprocessing Pipeline</h1>
+<p>Preprocessing is implemented using a ColumnTransformer with separate pipelines:</p>
+<p><strong>Numeric Pipeline</strong> - Median imputation to handle missing values - Standard scaling to normalize feature values</p>
+<p><strong>Categorical Pipeline</strong> - Most-frequent imputation for missing values - One-hot encoding with unknown category handling to capture categorical level effects.</p>
+<p>This approach ensures consistent preprocessing across training and evaluation.</p>
+<div id="b395ddac" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>df.columns.tolist()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>['business_id',
+ 'name',
+ 'city',
+ 'state',
+ 'address',
+ 'postal_code',
+ 'rating',
+ 'review_count',
+ 'price',
+ 'price_level',
+ 'is_closed',
+ 'categories_alias',
+ 'categories_title',
+ 'latitude',
+ 'longitude',
+ 'search_location',
+ 'search_category']</code></pre>
+</div>
+</div>
+<div id="53d426cf" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.compose <span class="im">import</span> ColumnTransformer</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.pipeline <span class="im">import</span> Pipeline</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> OneHotEncoder, StandardScaler</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.impute <span class="im">import</span> SimpleImputer</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="final-feature-selection" class="level1">
+<h1>Final Feature Selection</h1>
+<p>Based on exploratory analysis and domain reasoning, the following features are retained for modeling. This marks the transition from exploration to modeling.</p>
+<div id="f3fd1d7f" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>NonFeatureCols <span class="op">=</span> [</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"business_id"</span>,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"name"</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"address"</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"postal_code"</span>,</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"state"</span>,</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"categories_alias"</span>,</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"categories_title"</span>,</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"search_location"</span>,</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"is_closed"</span>,</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"rating"</span>,</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"price"</span>, <span class="co"># due to redundancy with price_level</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">"city"</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> df.drop(columns<span class="op">=</span>NonFeatureCols)</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>Y <span class="op">=</span> df[<span class="st">"rating"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="3c60aafe" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>NumericFeatures <span class="op">=</span> X.select_dtypes(include<span class="op">=</span>[<span class="st">"int64"</span>, <span class="st">"float64"</span>]).columns.tolist()</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>CategoricalFeatures <span class="op">=</span> X.select_dtypes(include<span class="op">=</span>[<span class="st">"object"</span>, <span class="st">"bool"</span>]).columns.tolist()</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>NumericFeatures, CategoricalFeatures</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="15">
+<pre><code>(['review_count', 'price_level', 'latitude', 'longitude'], ['search_category'])</code></pre>
+</div>
+</div>
+</section>
+<section id="combined-preprocessing-strategy" class="level1">
+<h1>Combined Preprocessing Strategy</h1>
+<p>Numeric and categorical preprocessing pipelines are combined using a <code>ColumnTransformer</code>. This enables parallel processing of feature types and ensures all transformations are applied consistently across datasets.</p>
+<div id="96c611af" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>NumericTransformer <span class="op">=</span> Pipeline(steps<span class="op">=</span>[</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Imputer"</span>, SimpleImputer(strategy<span class="op">=</span><span class="st">"median"</span>)),</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Scaler"</span>, StandardScaler())</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>CategoricalTransformer <span class="op">=</span> Pipeline(steps<span class="op">=</span>[</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Imputer"</span>, SimpleImputer(strategy<span class="op">=</span><span class="st">"most_frequent"</span>)),</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Encoder"</span>, OneHotEncoder(handle_unknown<span class="op">=</span><span class="st">"ignore"</span>))</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>Preprocessor <span class="op">=</span> ColumnTransformer(</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    transformers<span class="op">=</span>[</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"Numeric"</span>, NumericTransformer, NumericFeatures),</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"Categorical"</span>, CategoricalTransformer, CategoricalFeatures)</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="traintest-split" class="level1">
+<h1>Train–Test Split</h1>
+<p>The dataset is split into training and testing sets using an 80/20 split. A fixed random state is used to ensure reproducibility of results.</p>
+<div id="15bc21ed" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>XTrain, XTest, YTrain, YTest <span class="op">=</span> train_test_split(</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    X,</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    Y,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    test_size<span class="op">=</span><span class="fl">0.2</span>,</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    random_state<span class="op">=</span><span class="dv">42</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="expected-rating-model-baseline" class="level1">
+<h1>Expected Rating Model (Baseline)</h1>
+<p>A Linear Regression model is used as the baseline estimator for predicting expected Yelp ratings.</p>
+<p>This model was chosen for: - Interpretability - Stable residual behavior - Establishing a benchmark for more complex models</p>
+<div id="5863b25b" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LinearRegression</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>ExpectedRatingModel <span class="op">=</span> Pipeline(steps<span class="op">=</span>[</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Preprocessor"</span>, Preprocessor),</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Regressor"</span>, LinearRegression())</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>ExpectedRatingModel.fit(XTrain, YTrain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="18">
+<style>#sk-container-id-1 {color: black;background-color: white;}#sk-container-id-1 pre{padding: 0;}#sk-container-id-1 div.sk-toggleable {background-color: white;}#sk-container-id-1 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-1 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-1 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-1 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-1 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-1 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-1 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-1 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-1 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-1 div.sk-item {position: relative;z-index: 1;}#sk-container-id-1 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-1 div.sk-item::before, #sk-container-id-1 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-1 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-1 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-1 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-1 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-1 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-1 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-1 div.sk-label-container {text-align: center;}#sk-container-id-1 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-1 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Pipeline(steps=[('Preprocessor',
+                 ColumnTransformer(transformers=[('Numeric',
+                                                  Pipeline(steps=[('Imputer',
+                                                                   SimpleImputer(strategy='median')),
+                                                                  ('Scaler',
+                                                                   StandardScaler())]),
+                                                  ['review_count',
+                                                   'price_level', 'latitude',
+                                                   'longitude']),
+                                                 ('Categorical',
+                                                  Pipeline(steps=[('Imputer',
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('Encoder',
+                                                                   OneHotEncoder(handle_unknown='ignore'))]),
+                                                  ['search_category'])])),
+                ('Regressor', LinearRegression())])</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br>On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden=""><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-1" type="checkbox"><label for="sk-estimator-id-1" class="sk-toggleable__label sk-toggleable__label-arrow">Pipeline</label><div class="sk-toggleable__content"><pre>Pipeline(steps=[('Preprocessor',
+                 ColumnTransformer(transformers=[('Numeric',
+                                                  Pipeline(steps=[('Imputer',
+                                                                   SimpleImputer(strategy='median')),
+                                                                  ('Scaler',
+                                                                   StandardScaler())]),
+                                                  ['review_count',
+                                                   'price_level', 'latitude',
+                                                   'longitude']),
+                                                 ('Categorical',
+                                                  Pipeline(steps=[('Imputer',
+                                                                   SimpleImputer(strategy='most_frequent')),
+                                                                  ('Encoder',
+                                                                   OneHotEncoder(handle_unknown='ignore'))]),
+                                                  ['search_category'])])),
+                ('Regressor', LinearRegression())])</pre></div></div></div><div class="sk-serial"><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-2" type="checkbox"><label for="sk-estimator-id-2" class="sk-toggleable__label sk-toggleable__label-arrow">Preprocessor: ColumnTransformer</label><div class="sk-toggleable__content"><pre>ColumnTransformer(transformers=[('Numeric',
+                                 Pipeline(steps=[('Imputer',
+                                                  SimpleImputer(strategy='median')),
+                                                 ('Scaler', StandardScaler())]),
+                                 ['review_count', 'price_level', 'latitude',
+                                  'longitude']),
+                                ('Categorical',
+                                 Pipeline(steps=[('Imputer',
+                                                  SimpleImputer(strategy='most_frequent')),
+                                                 ('Encoder',
+                                                  OneHotEncoder(handle_unknown='ignore'))]),
+                                 ['search_category'])])</pre></div></div></div><div class="sk-parallel"><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-3" type="checkbox"><label for="sk-estimator-id-3" class="sk-toggleable__label sk-toggleable__label-arrow">Numeric</label><div class="sk-toggleable__content"><pre>['review_count', 'price_level', 'latitude', 'longitude']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-4" type="checkbox"><label for="sk-estimator-id-4" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer(strategy='median')</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-5" type="checkbox"><label for="sk-estimator-id-5" class="sk-toggleable__label sk-toggleable__label-arrow">StandardScaler</label><div class="sk-toggleable__content"><pre>StandardScaler()</pre></div></div></div></div></div></div></div></div><div class="sk-parallel-item"><div class="sk-item"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-6" type="checkbox"><label for="sk-estimator-id-6" class="sk-toggleable__label sk-toggleable__label-arrow">Categorical</label><div class="sk-toggleable__content"><pre>['search_category']</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-7" type="checkbox"><label for="sk-estimator-id-7" class="sk-toggleable__label sk-toggleable__label-arrow">SimpleImputer</label><div class="sk-toggleable__content"><pre>SimpleImputer(strategy='most_frequent')</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-8" type="checkbox"><label for="sk-estimator-id-8" class="sk-toggleable__label sk-toggleable__label-arrow">OneHotEncoder</label><div class="sk-toggleable__content"><pre>OneHotEncoder(handle_unknown='ignore')</pre></div></div></div></div></div></div></div></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-9" type="checkbox"><label for="sk-estimator-id-9" class="sk-toggleable__label sk-toggleable__label-arrow">LinearRegression</label><div class="sk-toggleable__content"><pre>LinearRegression()</pre></div></div></div></div></div></div></div>
+</div>
+</div>
+</section>
+<section id="model-training" class="level1">
+<h1>Model Training</h1>
+<p>The preprocessing pipeline and regression model are combined into a single end-to-end pipeline and trained on the training dataset.</p>
+</section>
+<section id="model-evaluation" class="level1">
+<h1>Model Evaluation</h1>
+<p>Model performance is evaluated using:</p>
+<ul>
+<li>Mean Absolute Error (MAE)</li>
+<li>Root Mean Squared Error (RMSE)</li>
+</ul>
+<p>These metrics quantify average prediction error in star ratings.</p>
+<div id="e19eb777" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_absolute_error, mean_squared_error</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>YPred <span class="op">=</span> ExpectedRatingModel.predict(XTest)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>MAE <span class="op">=</span> mean_absolute_error(YTest, YPred)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>RMSE <span class="op">=</span> np.sqrt(mean_squared_error(YTest, YPred))</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>MAE, RMSE</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="19">
+<pre><code>(0.2011713796112568, 0.23564654947280936)</code></pre>
+</div>
+</div>
+</section>
+<section id="interpreting-mae-and-rmse" class="level1">
+<h1>Interpreting MAE and RMSE</h1>
+<p>The Expected Rating model achieves a <strong>Mean Absolute Error (MAE) of approximately 0.20</strong> and a <strong>Root Mean Squared Error (RMSE) of approximately 0.24</strong>.</p>
+<p>MAE represents the average absolute difference between predicted and actual Yelp ratings, indicating that the model’s predictions are typically within <strong>about 0.2 stars</strong> of the true rating. RMSE penalizes larger errors more heavily and provides additional insight into the presence of outlier predictions.</p>
+<p>Given the inherent noise and subjectivity in Yelp ratings, as well as the limited feature set and dataset size, this level of error indicates <strong>strong baseline performance</strong>. These results suggest that observable attributes such as price level, review volume, category, and location capture meaningful signal in explaining business ratings.</p>
+</section>
+<section id="business-insight-rating-delta" class="level1">
+<h1>Business Insight: Rating Delta</h1>
+<p>The primary business-facing output of the model is <strong>Rating Delta</strong>, defined as:</p>
+<p><strong>Rating Delta = Actual Rating − Predicted Rating</strong></p>
+<p>This metric identifies: - Overperforming businesses (positive delta) - Underperforming businesses (negative delta)</p>
+<p>These results are designed to feed downstream BI dashboards.</p>
+<div id="371c582e" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>Results <span class="op">=</span> XTest.copy()</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>Results[<span class="st">"ActualRating"</span>] <span class="op">=</span> YTest</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>Results[<span class="st">"PredictedRating"</span>] <span class="op">=</span> YPred</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>Results[<span class="st">"RatingDelta"</span>] <span class="op">=</span> Results[<span class="st">"ActualRating"</span>] <span class="op">-</span> Results[<span class="st">"PredictedRating"</span>]</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>Results.sort_values(<span class="st">"RatingDelta"</span>, ascending<span class="op">=</span><span class="va">False</span>).head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="20">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+<th data-quarto-table-cell-role="th">search_category</th>
+<th data-quarto-table-cell-role="th">ActualRating</th>
+<th data-quarto-table-cell-role="th">PredictedRating</th>
+<th data-quarto-table-cell-role="th">RatingDelta</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">56</td>
+<td>445</td>
+<td>2.0</td>
+<td>30.266290</td>
+<td>-97.745975</td>
+<td>restaurants</td>
+<td>4.7</td>
+<td>4.255938</td>
+<td>0.444062</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">55</td>
+<td>1802</td>
+<td>2.0</td>
+<td>30.284804</td>
+<td>-97.713964</td>
+<td>restaurants</td>
+<td>4.7</td>
+<td>4.329399</td>
+<td>0.370601</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">66</td>
+<td>285</td>
+<td>3.0</td>
+<td>30.299900</td>
+<td>-97.740310</td>
+<td>restaurants</td>
+<td>4.6</td>
+<td>4.276976</td>
+<td>0.323024</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">164</td>
+<td>111</td>
+<td>NaN</td>
+<td>30.319075</td>
+<td>-97.739501</td>
+<td>restaurants</td>
+<td>4.6</td>
+<td>4.297136</td>
+<td>0.302864</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">45</td>
+<td>629</td>
+<td>2.0</td>
+<td>30.284983</td>
+<td>-97.716848</td>
+<td>restaurants</td>
+<td>4.6</td>
+<td>4.319636</td>
+<td>0.280364</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">125</td>
+<td>167</td>
+<td>4.0</td>
+<td>30.247400</td>
+<td>-97.750060</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.220120</td>
+<td>0.279880</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">95</td>
+<td>2032</td>
+<td>2.0</td>
+<td>30.241613</td>
+<td>-97.758876</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.224812</td>
+<td>0.275188</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">18</td>
+<td>271</td>
+<td>4.0</td>
+<td>30.269544</td>
+<td>-97.749509</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.234522</td>
+<td>0.265478</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">30</td>
+<td>1373</td>
+<td>2.0</td>
+<td>30.268470</td>
+<td>-97.727610</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.293728</td>
+<td>0.206272</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">16</td>
+<td>3145</td>
+<td>4.0</td>
+<td>30.257539</td>
+<td>-97.759796</td>
+<td>restaurants</td>
+<td>4.4</td>
+<td>4.220678</td>
+<td>0.179322</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="adding-back-the-business-identifiers" class="level1">
+<h1>Adding back the Business Identifiers</h1>
+<p>After generating predictions and computing Rating Deltas, the business identifiers and names are merged back into the results for interpretation and reporting purposes.</p>
+<div id="6e8a9942" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>Meta <span class="op">=</span> df[[<span class="st">"business_id"</span>, <span class="st">"name"</span>]].copy()</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>Results[<span class="st">"business_id"</span>] <span class="op">=</span> Meta.loc[Results.index, <span class="st">"business_id"</span>]</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>Results[<span class="st">"name"</span>] <span class="op">=</span> Meta.loc[Results.index, <span class="st">"name"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="overperforming-businesses" class="level1">
+<h1>Overperforming Businesses</h1>
+<p>The table above highlights businesses with the largest positive <strong>Rating Delta</strong>, meaning their actual Yelp ratings exceed what the model would expect given their observable characteristics.</p>
+<div id="ce35f4ee" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>Results.sort_values(<span class="st">"RatingDelta"</span>, ascending<span class="op">=</span><span class="va">False</span>).head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="22">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+<th data-quarto-table-cell-role="th">search_category</th>
+<th data-quarto-table-cell-role="th">ActualRating</th>
+<th data-quarto-table-cell-role="th">PredictedRating</th>
+<th data-quarto-table-cell-role="th">RatingDelta</th>
+<th data-quarto-table-cell-role="th">business_id</th>
+<th data-quarto-table-cell-role="th">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">56</td>
+<td>445</td>
+<td>2.0</td>
+<td>30.266290</td>
+<td>-97.745975</td>
+<td>restaurants</td>
+<td>4.7</td>
+<td>4.255938</td>
+<td>0.444062</td>
+<td>GZfHsTQAabxdXB_z30h6kw</td>
+<td>DeSano Pizzeria Napoletana</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">55</td>
+<td>1802</td>
+<td>2.0</td>
+<td>30.284804</td>
+<td>-97.713964</td>
+<td>restaurants</td>
+<td>4.7</td>
+<td>4.329399</td>
+<td>0.370601</td>
+<td>PrWSjn4a8o4dHoqKs53GBA</td>
+<td>Bird Bird Biscuit</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">66</td>
+<td>285</td>
+<td>3.0</td>
+<td>30.299900</td>
+<td>-97.740310</td>
+<td>restaurants</td>
+<td>4.6</td>
+<td>4.276976</td>
+<td>0.323024</td>
+<td>Bz-NZ-2Dx6pztO0nvfD3JA</td>
+<td>Nori</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">164</td>
+<td>111</td>
+<td>NaN</td>
+<td>30.319075</td>
+<td>-97.739501</td>
+<td>restaurants</td>
+<td>4.6</td>
+<td>4.297136</td>
+<td>0.302864</td>
+<td>r7m-V0drTnK9o2Mg1FcxAQ</td>
+<td>Gràcia Mediterranean</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">45</td>
+<td>629</td>
+<td>2.0</td>
+<td>30.284983</td>
+<td>-97.716848</td>
+<td>restaurants</td>
+<td>4.6</td>
+<td>4.319636</td>
+<td>0.280364</td>
+<td>Unl62KlI0kwF8pToy7QjSA</td>
+<td>Vic &amp; Al's</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">125</td>
+<td>167</td>
+<td>4.0</td>
+<td>30.247400</td>
+<td>-97.750060</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.220120</td>
+<td>0.279880</td>
+<td>CLcRsv9px0tbBkPkRN5qBQ</td>
+<td>Otoko</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">95</td>
+<td>2032</td>
+<td>2.0</td>
+<td>30.241613</td>
+<td>-97.758876</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.224812</td>
+<td>0.275188</td>
+<td>KEh3efWSOIzd8BvuW-X4-g</td>
+<td>Phoebe's Diner</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">18</td>
+<td>271</td>
+<td>4.0</td>
+<td>30.269544</td>
+<td>-97.749509</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.234522</td>
+<td>0.265478</td>
+<td>wKQNqpvphl0zGCv9JuIN8Q</td>
+<td>J Carver’s</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">30</td>
+<td>1373</td>
+<td>2.0</td>
+<td>30.268470</td>
+<td>-97.727610</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.293728</td>
+<td>0.206272</td>
+<td>jmmzYxurOoA_K_RtanzQow</td>
+<td>Paperboy East</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">16</td>
+<td>3145</td>
+<td>4.0</td>
+<td>30.257539</td>
+<td>-97.759796</td>
+<td>restaurants</td>
+<td>4.4</td>
+<td>4.220678</td>
+<td>0.179322</td>
+<td>zFaHweOJ40jjtvpGTjlspw</td>
+<td>Uchi Austin</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="underperforming-businesses" class="level1">
+<h1>Underperforming Businesses</h1>
+<p>The table above highlights businesses with the largest negative <strong>Rating Delta</strong>, meaning their actual Yelp ratings fall short of what the model would expect given their observable characteristics.</p>
+<div id="1aaf576e" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>Results.sort_values(<span class="st">"RatingDelta"</span>, ascending<span class="op">=</span><span class="va">True</span>).head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="23">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+<th data-quarto-table-cell-role="th">search_category</th>
+<th data-quarto-table-cell-role="th">ActualRating</th>
+<th data-quarto-table-cell-role="th">PredictedRating</th>
+<th data-quarto-table-cell-role="th">RatingDelta</th>
+<th data-quarto-table-cell-role="th">business_id</th>
+<th data-quarto-table-cell-role="th">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">124</td>
+<td>944</td>
+<td>2.0</td>
+<td>30.317058</td>
+<td>-97.719566</td>
+<td>restaurants</td>
+<td>3.8</td>
+<td>4.334884</td>
+<td>-0.534884</td>
+<td>u5XqU3ys3nXd1Ee0XYKLWg</td>
+<td>Foreign &amp; Domestic</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">152</td>
+<td>620</td>
+<td>2.0</td>
+<td>30.298554</td>
+<td>-97.740989</td>
+<td>restaurants</td>
+<td>3.9</td>
+<td>4.284481</td>
+<td>-0.384481</td>
+<td>6e3UQmbqFLGWWDCI5VczCA</td>
+<td>Hopfields</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">93</td>
+<td>683</td>
+<td>2.0</td>
+<td>30.298400</td>
+<td>-97.704748</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.349327</td>
+<td>-0.349327</td>
+<td>xyvGNML9BW-3seLMqeYCWA</td>
+<td>Colleen's Kitchen</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">75</td>
+<td>2039</td>
+<td>2.0</td>
+<td>30.357639</td>
+<td>-97.733130</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.338903</td>
+<td>-0.338903</td>
+<td>67bZm-KQQCwSat7_jmiVbA</td>
+<td>Hopdoddy Burger Bar</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">82</td>
+<td>1049</td>
+<td>3.0</td>
+<td>30.253860</td>
+<td>-97.712900</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.301943</td>
+<td>-0.301943</td>
+<td>yqL1P6wcSZYQAgpO3TfhBQ</td>
+<td>Kemuri Tatsu-ya</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">67</td>
+<td>2193</td>
+<td>2.0</td>
+<td>30.264941</td>
+<td>-97.743749</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.266152</td>
+<td>-0.266152</td>
+<td>9e5lIroM6Eyd4aS26pWWEQ</td>
+<td>Cooper's Old Time Pit Bar-B-Que</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">69</td>
+<td>987</td>
+<td>3.0</td>
+<td>30.256941</td>
+<td>-97.739332</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.256326</td>
+<td>-0.256326</td>
+<td>U72ZAUh47P1cX-91jqLpJw</td>
+<td>Emmer &amp; Rye</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">78</td>
+<td>1232</td>
+<td>3.0</td>
+<td>30.265660</td>
+<td>-97.743238</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.255460</td>
+<td>-0.255460</td>
+<td>CqOkl94q9ttvYNWIITA8ow</td>
+<td>Swift's Attic</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">84</td>
+<td>1118</td>
+<td>3.0</td>
+<td>30.356725</td>
+<td>-97.731240</td>
+<td>restaurants</td>
+<td>4.1</td>
+<td>4.329876</td>
+<td>-0.229876</td>
+<td>SRwJ6tNJ6r7hQ3uQ7hIBpQ</td>
+<td>Bartlett's</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">177</td>
+<td>848</td>
+<td>2.0</td>
+<td>30.263260</td>
+<td>-97.726240</td>
+<td>restaurants</td>
+<td>4.1</td>
+<td>4.291003</td>
+<td>-0.191003</td>
+<td>7ZU9DwctpN_tkC7EOd3C-Q</td>
+<td>Ramen Tatsu-Ya</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="interpreting-the-results" class="level1">
+<h1>Interpreting the Results</h1>
+<p>The tables above present businesses with the largest positive and negative <strong>Rating Delta</strong> values. Rating Delta measures the difference between a business’s actual Yelp rating and the rating predicted by the model given its price level, review volume, category, and location.</p>
+<p>Businesses with positive Rating Delta values can be interpreted as <strong>overperformers</strong> or <strong>“hidden gems,”</strong> achieving higher customer satisfaction than peers with similar observable characteristics. Conversely, businesses with negative Rating Delta values may be considered <strong>underperformers</strong>, receiving lower ratings than the model would expect.</p>
+<p>Rather than assigning causality, this analysis provides a relative performance signal that can guide further qualitative investigation, operational review, or strategic replication. This demonstrates how the Expected Rating model extends beyond prediction to deliver actionable business insight.</p>
+</section>
+<section id="model-comparison-regularized-regression" class="level1">
+<h1>Model Comparison: Regularized Regression</h1>
+<p>To evaluate the robustness of the baseline model, Ridge and Lasso regression were trained and compared using the same preprocessing pipeline and evaluation metrics.</p>
+</section>
+<section id="ridge-regression" class="level1">
+<h1>Ridge Regression</h1>
+<p>Ridge regression introduces L2 regularization to the linear model, which can help mitigate overfitting and improve generalization. The model was trained and evaluated using the established pipeline.</p>
+<div id="170ba753" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> Ridge</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>RidgeModel <span class="op">=</span> Pipeline(steps<span class="op">=</span>[</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Preprocessor"</span>, Preprocessor),</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Regressor"</span>, Ridge(alpha<span class="op">=</span><span class="fl">1.0</span>))</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>RidgeModel.fit(XTrain, YTrain)</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>RidgePred <span class="op">=</span> RidgeModel.predict(XTest)</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>RidgeMAE <span class="op">=</span> mean_absolute_error(YTest, RidgePred)</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>RidgeRMSE <span class="op">=</span> np.sqrt(mean_squared_error(YTest, RidgePred))</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>RidgeMAE, RidgeRMSE</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="24">
+<pre><code>(0.20116452768079024, 0.23559424193973655)</code></pre>
+</div>
+</div>
+</section>
+<section id="lasso-regression" class="level1">
+<h1>Lasso Regression</h1>
+<p>Lasso regression applies L1 regularization, which can perform feature selection by shrinking some coefficients to zero. This model was also trained and evaluated using the established pipeline.</p>
+<div id="55231a30" class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> Lasso</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>LassoModel <span class="op">=</span> Pipeline(steps<span class="op">=</span>[</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Preprocessor"</span>, Preprocessor),</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Regressor"</span>, Lasso(alpha<span class="op">=</span><span class="fl">0.01</span>))</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>LassoModel.fit(XTrain, YTrain)</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>LassoPred <span class="op">=</span> LassoModel.predict(XTest)</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>LassoMAE <span class="op">=</span> mean_absolute_error(YTest, LassoPred)</span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>LassoRMSE <span class="op">=</span> np.sqrt(mean_squared_error(YTest, LassoPred))</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>LassoMAE, LassoRMSE</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="25">
+<pre><code>(0.20028519782140894, 0.23283769334392354)</code></pre>
+</div>
+</div>
+<div id="45fd0331" class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>ModelComparison <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Model"</span>: [<span class="st">"Linear Regression"</span>, <span class="st">"Ridge Regression"</span>, <span class="st">"Lasso Regression"</span>],</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"MAE"</span>: [MAE, RidgeMAE, LassoMAE],</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"RMSE"</span>: [RMSE, RidgeRMSE, LassoRMSE]</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>ModelComparison</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="26">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Model</th>
+<th data-quarto-table-cell-role="th">MAE</th>
+<th data-quarto-table-cell-role="th">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Linear Regression</td>
+<td>0.201171</td>
+<td>0.235647</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Ridge Regression</td>
+<td>0.201165</td>
+<td>0.235594</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Lasso Regression</td>
+<td>0.200285</td>
+<td>0.232838</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="model-comparison-interpretation" class="level1">
+<h1>Model Comparison Interpretation</h1>
+<p>All three regression models exhibit very similar predictive performance, indicating that the relationship between the selected features and Yelp ratings is largely linear. Regularization does not dramatically change model accuracy, suggesting that the baseline feature set is stable and well-conditioned.</p>
+<p>Lasso regression achieves the lowest MAE and RMSE among the tested models, providing a slight improvement in predictive accuracy while also encouraging sparsity in the one-hot encoded categorical features. Given this marginal performance gain and the added benefit of regularization, Lasso regression is selected as the final model for downstream analysis.</p>
+</section>
+<section id="final-model-selection" class="level1">
+<h1>Final Model Selection</h1>
+<p>Lasso regression is retained as the final Expected Rating model due to its slightly improved performance and regularization benefits.</p>
+<div id="d890d141" class="cell" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>FinalModel <span class="op">=</span> LassoModel</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>FinalPred <span class="op">=</span> FinalModel.predict(XTest)</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>FinalResults <span class="op">=</span> XTest.copy()</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>FinalResults[<span class="st">"ActualRating"</span>] <span class="op">=</span> YTest</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>FinalResults[<span class="st">"PredictedRating"</span>] <span class="op">=</span> FinalPred</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>FinalResults[<span class="st">"RatingDelta"</span>] <span class="op">=</span> FinalResults[<span class="st">"ActualRating"</span>] <span class="op">-</span> FinalResults[<span class="st">"PredictedRating"</span>]</span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>FinalResults[<span class="st">"business_id"</span>] <span class="op">=</span> Meta.loc[FinalResults.index, <span class="st">"business_id"</span>]</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>FinalResults[<span class="st">"name"</span>] <span class="op">=</span> Meta.loc[FinalResults.index, <span class="st">"name"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="d497ce01" class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>FinalResults.sort_values(<span class="st">"RatingDelta"</span>, ascending<span class="op">=</span><span class="va">False</span>).head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="29">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+<th data-quarto-table-cell-role="th">search_category</th>
+<th data-quarto-table-cell-role="th">ActualRating</th>
+<th data-quarto-table-cell-role="th">PredictedRating</th>
+<th data-quarto-table-cell-role="th">RatingDelta</th>
+<th data-quarto-table-cell-role="th">business_id</th>
+<th data-quarto-table-cell-role="th">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">56</td>
+<td>445</td>
+<td>2.0</td>
+<td>30.266290</td>
+<td>-97.745975</td>
+<td>restaurants</td>
+<td>4.7</td>
+<td>4.262818</td>
+<td>0.437182</td>
+<td>GZfHsTQAabxdXB_z30h6kw</td>
+<td>DeSano Pizzeria Napoletana</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">55</td>
+<td>1802</td>
+<td>2.0</td>
+<td>30.284804</td>
+<td>-97.713964</td>
+<td>restaurants</td>
+<td>4.7</td>
+<td>4.315114</td>
+<td>0.384886</td>
+<td>PrWSjn4a8o4dHoqKs53GBA</td>
+<td>Bird Bird Biscuit</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">66</td>
+<td>285</td>
+<td>3.0</td>
+<td>30.299900</td>
+<td>-97.740310</td>
+<td>restaurants</td>
+<td>4.6</td>
+<td>4.283447</td>
+<td>0.316553</td>
+<td>Bz-NZ-2Dx6pztO0nvfD3JA</td>
+<td>Nori</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">164</td>
+<td>111</td>
+<td>NaN</td>
+<td>30.319075</td>
+<td>-97.739501</td>
+<td>restaurants</td>
+<td>4.6</td>
+<td>4.291782</td>
+<td>0.308218</td>
+<td>r7m-V0drTnK9o2Mg1FcxAQ</td>
+<td>Gràcia Mediterranean</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">45</td>
+<td>629</td>
+<td>2.0</td>
+<td>30.284983</td>
+<td>-97.716848</td>
+<td>restaurants</td>
+<td>4.6</td>
+<td>4.311095</td>
+<td>0.288905</td>
+<td>Unl62KlI0kwF8pToy7QjSA</td>
+<td>Vic &amp; Al's</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">95</td>
+<td>2032</td>
+<td>2.0</td>
+<td>30.241613</td>
+<td>-97.758876</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.235288</td>
+<td>0.264712</td>
+<td>KEh3efWSOIzd8BvuW-X4-g</td>
+<td>Phoebe's Diner</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">125</td>
+<td>167</td>
+<td>4.0</td>
+<td>30.247400</td>
+<td>-97.750060</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.249948</td>
+<td>0.250052</td>
+<td>CLcRsv9px0tbBkPkRN5qBQ</td>
+<td>Otoko</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">18</td>
+<td>271</td>
+<td>4.0</td>
+<td>30.269544</td>
+<td>-97.749509</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.259031</td>
+<td>0.240969</td>
+<td>wKQNqpvphl0zGCv9JuIN8Q</td>
+<td>J Carver’s</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">30</td>
+<td>1373</td>
+<td>2.0</td>
+<td>30.268470</td>
+<td>-97.727610</td>
+<td>restaurants</td>
+<td>4.5</td>
+<td>4.289656</td>
+<td>0.210344</td>
+<td>jmmzYxurOoA_K_RtanzQow</td>
+<td>Paperboy East</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">16</td>
+<td>3145</td>
+<td>4.0</td>
+<td>30.257539</td>
+<td>-97.759796</td>
+<td>restaurants</td>
+<td>4.4</td>
+<td>4.239955</td>
+<td>0.160045</td>
+<td>zFaHweOJ40jjtvpGTjlspw</td>
+<td>Uchi Austin</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="b206e3ab" class="cell" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>FinalResults.sort_values(<span class="st">"RatingDelta"</span>, ascending<span class="op">=</span><span class="va">True</span>).head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="30">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">review_count</th>
+<th data-quarto-table-cell-role="th">price_level</th>
+<th data-quarto-table-cell-role="th">latitude</th>
+<th data-quarto-table-cell-role="th">longitude</th>
+<th data-quarto-table-cell-role="th">search_category</th>
+<th data-quarto-table-cell-role="th">ActualRating</th>
+<th data-quarto-table-cell-role="th">PredictedRating</th>
+<th data-quarto-table-cell-role="th">RatingDelta</th>
+<th data-quarto-table-cell-role="th">business_id</th>
+<th data-quarto-table-cell-role="th">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">124</td>
+<td>944</td>
+<td>2.0</td>
+<td>30.317058</td>
+<td>-97.719566</td>
+<td>restaurants</td>
+<td>3.8</td>
+<td>4.319271</td>
+<td>-0.519271</td>
+<td>u5XqU3ys3nXd1Ee0XYKLWg</td>
+<td>Foreign &amp; Domestic</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">152</td>
+<td>620</td>
+<td>2.0</td>
+<td>30.298554</td>
+<td>-97.740989</td>
+<td>restaurants</td>
+<td>3.9</td>
+<td>4.281979</td>
+<td>-0.381979</td>
+<td>6e3UQmbqFLGWWDCI5VczCA</td>
+<td>Hopfields</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">93</td>
+<td>683</td>
+<td>2.0</td>
+<td>30.298400</td>
+<td>-97.704748</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.333270</td>
+<td>-0.333270</td>
+<td>xyvGNML9BW-3seLMqeYCWA</td>
+<td>Colleen's Kitchen</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">75</td>
+<td>2039</td>
+<td>2.0</td>
+<td>30.357639</td>
+<td>-97.733130</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.315268</td>
+<td>-0.315268</td>
+<td>67bZm-KQQCwSat7_jmiVbA</td>
+<td>Hopdoddy Burger Bar</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">82</td>
+<td>1049</td>
+<td>3.0</td>
+<td>30.253860</td>
+<td>-97.712900</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.305019</td>
+<td>-0.305019</td>
+<td>yqL1P6wcSZYQAgpO3TfhBQ</td>
+<td>Kemuri Tatsu-ya</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">69</td>
+<td>987</td>
+<td>3.0</td>
+<td>30.256941</td>
+<td>-97.739332</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.268724</td>
+<td>-0.268724</td>
+<td>U72ZAUh47P1cX-91jqLpJw</td>
+<td>Emmer &amp; Rye</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">78</td>
+<td>1232</td>
+<td>3.0</td>
+<td>30.265660</td>
+<td>-97.743238</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.266460</td>
+<td>-0.266460</td>
+<td>CqOkl94q9ttvYNWIITA8ow</td>
+<td>Swift's Attic</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">67</td>
+<td>2193</td>
+<td>2.0</td>
+<td>30.264941</td>
+<td>-97.743749</td>
+<td>restaurants</td>
+<td>4.0</td>
+<td>4.265467</td>
+<td>-0.265467</td>
+<td>9e5lIroM6Eyd4aS26pWWEQ</td>
+<td>Cooper's Old Time Pit Bar-B-Que</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">84</td>
+<td>1118</td>
+<td>3.0</td>
+<td>30.356725</td>
+<td>-97.731240</td>
+<td>restaurants</td>
+<td>4.1</td>
+<td>4.317604</td>
+<td>-0.217604</td>
+<td>SRwJ6tNJ6r7hQ3uQ7hIBpQ</td>
+<td>Bartlett's</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">177</td>
+<td>848</td>
+<td>2.0</td>
+<td>30.263260</td>
+<td>-97.726240</td>
+<td>restaurants</td>
+<td>4.1</td>
+<td>4.289643</td>
+<td>-0.189643</td>
+<td>7ZU9DwctpN_tkC7EOd3C-Q</td>
+<td>Ramen Tatsu-Ya</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="saving-final-results" class="level1">
+<h1>Saving Final Results</h1>
+<p>The final results, including business identifiers, actual ratings, predicted ratings, and Rating Delta values, are saved to a CSV file for integration into downstream BI dashboards and reporting.</p>
+<div id="174b5170" class="cell" data-execution_count="32">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>FinalResults.to_csv(</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"/Users/nathanho/Desktop/Yelp-BI/data/kpi/expected_rating_results.csv"</span>,</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    index<span class="op">=</span><span class="va">False</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="linear-vs-lasso-model-comparison" class="level1">
+<h1>Linear vs Lasso Model Comparison</h1>
+<p>To validate the robustness of the Expected Rating signal, results from the baseline Linear Regression model were compared against the final Lasso Regression model. While both models use the same feature set and preprocessing pipeline, Lasso introduces regularization that refines how feature contributions are weighted.</p>
+</section>
+<section id="consistency-of-results" class="level1">
+<h1>Consistency of Results</h1>
+<p>Across both models, largely the same businesses appear among the highest and lowest Rating Delta values. This consistency indicates that the identification of overperforming and underperforming businesses is not driven by a specific modeling choice, but instead reflects a stable underlying signal in the data. The agreement in direction and ranking between models strengthens confidence that the results are meaningful and not artifacts of overfitting or noise.</p>
+</section>
+<section id="differences-in-magnitude" class="level1">
+<h1>Differences in Magnitude</h1>
+<p>While rankings remain similar, the magnitude of Rating Delta values differs between the two approaches:</p>
+<ul>
+<li><p>Linear Regression tends to produce more extreme positive and negative deviations.</p></li>
+<li><p>Lasso Regression produces more conservative deviations by shrinking the influence of weaker or correlated features.</p></li>
+</ul>
+<p>As a result, Lasso dampens extreme predictions while preserving relative ordering. This leads to a more stable and interpretable performance signal, particularly when features exhibit correlation or limited sample size.</p>
+</section>
+<section id="interpretation" class="level1">
+<h1>Interpretation</h1>
+<p>The Linear Regression model serves as an effective baseline for understanding the expected relationship between business characteristics and Yelp ratings. The Lasso model refines this baseline by improving robustness without materially changing the business conclusions. In practice, this means that:</p>
+<ul>
+<li><p>Linear Regression confirms the presence of meaningful signal</p></li>
+<li><p>Lasso Regression provides a cleaner, more reliable version of that signal for downstream analysis</p></li>
+</ul>
+</section>
+<section id="final-model-choice" class="level1">
+<h1>Final Model Choice</h1>
+<p>Given the strong alignment between models and the added regularization benefits, Lasso Regression was selected as the final model. Its outputs are better suited for business-facing interpretation and integration into BI dashboards, where stability and interpretability are prioritized over maximizing coefficient magnitude.</p>
+<section id="final-thoughts" class="level2">
+<h2 class="anchored" data-anchor-id="final-thoughts">Final Thoughts</h2>
+<p>This project developed an end-to-end Expected Rating model to evaluate Yelp businesses relative to their observable characteristics. Starting from raw Yelp Fusion API data, the workflow progressed through data cleaning, exploratory analysis, feature selection, and model development to produce a practical, business-facing performance signal.</p>
+<p>A baseline Linear Regression model was first used to establish that meaningful relationships exist between business attributes such as price level, review volume, category, and location and observed Yelp ratings. Building on this foundation, a Lasso Regression model was selected as the final model to improve robustness through regularization while maintaining interpretability.</p>
+<p>The final model achieves strong predictive performance, with an average error of approximately 0.2 Yelp stars, indicating that predictions are closely aligned with true ratings despite the inherent noise and subjectivity of customer reviews. Comparing predicted and actual ratings enables the identification of businesses that overperform or underperform relative to expectations in a consistent, data-driven manner.</p>
+<p>Rather than assigning causality, the model provides a normalized benchmark for performance that accounts for key contextual factors. This allows raw ratings to be interpreted more meaningfully and supports deeper investigation into operational excellence, pricing strategy, and customer experience.</p>
+<p>Overall, this project demonstrates how machine learning can extend traditional business intelligence workflows by introducing contextual performance benchmarking. The resulting outputs are designed for integration into downstream BI dashboards and strategic analysis, offering actionable insight grounded in both statistical rigor and business relevance.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
