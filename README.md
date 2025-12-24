@@ -134,7 +134,8 @@ identifies businesses that appear more or less vulnerable relative to peers.
 
 ## Next Steps
 
-- Build and finalize Power BI dashboards using KPI and ML outputs    
+- Build and finalize Power BI dashboards using KPI and ML outputs
+- Built the first page but may rebuild.    
 
 ---
 
