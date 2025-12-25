@@ -1,9 +1,5 @@
 # Yelp Business Intelligence Platform (Yelp-BI)
 
-## Status
-
-In Progress
-
 ---
 
 ## Overview
@@ -35,7 +31,7 @@ that can be directly consumed by downstream BI dashboards.
 
 ---
 
-### Expected Rating Model (Completed)
+### Expected Rating Model
 
 **Objective**  
 Predict the expected Yelp rating of a business based on observable attributes such as
@@ -66,7 +62,7 @@ Regression
 
 ---
 
-### Closure Risk Proxy Model (Completed)
+### Closure Risk Proxy Model
 
 **Objective**  
 Estimate **relative business closure risk** using observable Yelp signals related
@@ -132,10 +128,21 @@ identifies businesses that appear more or less vulnerable relative to peers.
 
 ---
 
-## Next Steps
+## Dashboards
 
-- Build and finalize Power BI dashboards using KPI and ML outputs
-- Built the first page but may rebuild.    
+### Austin Market Overview (Power BI)
+An executive-level dashboard summarizing the Austin Yelp market, with a focus on pricing and customer perception. This view illustrates the relationship between price tiers, average ratings, review engagement, and overall market composition.
+
+**Primary audience:** Recruiters, hiring managers, non-technical stakeholders  
+**Purpose:** High-level market understanding and business context
+
+---
+
+### Performance vs Expected Rating (Power BI)
+An analytical dashboard built on top of a machine learning–based expected rating model. This view compares actual ratings to model-estimated expectations to identify businesses that over- or underperform relative to their peers.
+
+**Primary audience:** Data and analytics practitioners  
+**Purpose:** Model-driven performance diagnostics and competitive insight 
 
 ---
 
